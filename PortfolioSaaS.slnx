@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="PortfolioSaaS.Api/PortfolioSaaS.Api.csproj" />
+  <Project Path="PortfolioSaaS.Application/PortfolioSaaS.Application.csproj" />
+  <Project Path="PortfolioSaaS.Domain/PortfolioSaaS.Domain.csproj" />
+  <Project Path="PortfolioSaaS.Infrastructure/PortfolioSaaS.Infrastructure.csproj" />
+</Solution>
