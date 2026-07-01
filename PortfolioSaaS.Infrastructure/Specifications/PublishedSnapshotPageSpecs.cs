@@ -19,7 +19,7 @@ public static class PublishedSnapshotPageSpecs
         public BySlug(string slug)
         {
             Query.Where(p => p.Slug == slug)
-                 .Include(x => x.Sections).ThenInclude(x => x.SectionTemplate);
+                 .Include(x => x.Sections.OrderBy(s => s.Order)).ThenInclude(x => x.SectionTemplate);
         }
     }
 }

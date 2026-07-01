@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace PortfolioSaaS.Application.DTOs.PublishedSnapshotPages;
 
 public class PublishedSnapshotPageDto
@@ -11,7 +13,7 @@ public class PublishedSnapshotPageDto
 public class PublishedSnapshotSectionDto
 {
     public string ComponentSelector { get; set; } = "";
-    public string ContentJson { get; set; } = "{}";
+    public JsonDocument ContentJson { get; set; } = JsonDocument.Parse("{}");
     public int Order { get; set; }
     public List<PublishedSnapshotSectionDto> SubSections { get; set; } = [];
 }

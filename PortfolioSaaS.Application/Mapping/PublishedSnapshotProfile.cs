@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AutoMapper;
 using PortfolioSaaS.Application.DTOs.PublishedSnapshotPages;
 using PortfolioSaaS.Domain.Entities;
@@ -10,6 +11,8 @@ public class PublishedSnapshotProfile : Profile
     {
         CreateMap<PublishedSnapshotPage, PublishedSnapshotPageDto>();
         CreateMap<PublishedSnapshotSection, PublishedSnapshotSectionDto>()
-            .ForMember(dest => dest.ComponentSelector, opt => opt.MapFrom(src => src.SectionTemplate!.ComponentSelector));
+            .ForMember(dest => dest.ComponentSelector, opt => opt.MapFrom(src => src.SectionTemplate!.ComponentSelector))
+            .ForMember(dest => dest.ContentJson, opt => opt.MapFrom(src => JsonDocument.Parse(src.ContentJson)));
+
     }
 }

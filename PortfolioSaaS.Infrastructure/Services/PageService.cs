@@ -125,7 +125,7 @@ public class PageService(
                 existingSections.Add(existingSection);
             }
 
-            existingSection.ContentJson = sectionDto.ContentJson;
+            existingSection.ContentJson = sectionDto.ContentJson.RootElement.GetRawText();
             existingSection.Order = sectionDto.Order;
             existingSection.IsEnabled = sectionDto.IsEnabled;
             existingSection.ParentSectionId = parentSectionId;

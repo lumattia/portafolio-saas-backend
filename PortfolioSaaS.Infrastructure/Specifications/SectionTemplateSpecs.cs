@@ -11,7 +11,7 @@ public static class SectionTemplateSpecs
     {
         var spec = new PagedSpecification<SectionTemplate>(param);
         spec.Query.Where(x => x.CategoryTags.HasFlag(request.CategoryTags!.Value), request.CategoryTags != null);
-        spec.Query.Search(x => x.Name, request.Name!, request.Name != null);
+        spec.Query.Search(x => x.Name.ToLower(), $"%{request.Name?.ToLower()}%", request.Name != null);
         return spec;
     }
 }

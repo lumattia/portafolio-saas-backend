@@ -23,7 +23,7 @@ public class PageSpecs : Specification<Page>
         else
             spec.Query.Where(x => x.Slug == identifier);
 
-        spec.Query.Include(x => x.Sections).ThenInclude(x => x.SectionTemplate);
+        spec.Query.Include(x => x.Sections.OrderBy(s => s.Order)).ThenInclude(x => x.SectionTemplate);
         return spec;
     }
 }
