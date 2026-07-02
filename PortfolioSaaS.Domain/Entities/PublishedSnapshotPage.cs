@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using PortfolioSaaS.Domain.Common;
 
 namespace PortfolioSaaS.Domain.Entities;
@@ -10,9 +11,11 @@ public class PublishedSnapshotPage : ITenantEntity
     public string Title { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public string MetaDescription { get; set; } = string.Empty;
+    public bool Disabled {get; set;} = false;
     public DateTime PublishedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation
     public Tenant Tenant { get; set; } = null!;
-    public ICollection<PublishedSnapshotSection> Sections { get; set; } = [];
+    public List<PublishedSnapshotSection> Sections { get; set; } = [];
+
 }

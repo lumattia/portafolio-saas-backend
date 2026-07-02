@@ -3,11 +3,11 @@ using PortfolioSaaS.Domain.Entities;
 
 namespace PortfolioSaaS.Infrastructure.Specifications;
 
-public class UserSpecs : Specification<User>
+public static class UserSpecs
 {
-    public static UserSpecs ByEmail(string email)
+    public static Specification<User> ByEmail(string email)
     {
-        var spec = new UserSpecs();
+        var spec = new Specification<User>();
         spec.Query.Where(x => x.Email == email);
         return spec;
     }

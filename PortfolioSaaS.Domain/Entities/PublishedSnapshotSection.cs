@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+
 namespace PortfolioSaaS.Domain.Entities;
 
 public class PublishedSnapshotSection
@@ -17,5 +19,5 @@ public class PublishedSnapshotSection
     public PublishedSnapshotPage SnapshotPage { get; set; } = null!;
     public SectionTemplate SectionTemplate { get; set; } = null!;
     public PublishedSnapshotSection? ParentSection { get; set; }
-    public ICollection<PublishedSnapshotSection> SubSections { get; set; } = [];
+    public List<PublishedSnapshotSection> SubSections { get; set; } = [];
 }

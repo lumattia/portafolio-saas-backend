@@ -5,21 +5,15 @@ namespace PortfolioSaaS.Infrastructure.Specifications;
 
 public static class PublishedSnapshotPageSpecs
 {
-    public class ByOriginalPageId : Specification<PublishedSnapshotPage>
+    public static Specification<PublishedSnapshotPage> GetByIdentifierIncludeSection(string identifier, bool hideDisabled)
     {
-        public ByOriginalPageId(Guid originalPageId)
-        {
-            Query.Where(p => p.OriginalPageId == originalPageId)
-                 .Include(x => x.Sections).ThenInclude(x => x.SectionTemplate);
-        }
-    }
-
-    public class BySlug : Specification<PublishedSnapshotPage>
-    {
-        public BySlug(string slug)
-        {
-            Query.Where(p => p.Slug == slug)
-                 .Include(x => x.Sections.OrderBy(s => s.Order)).ThenInclude(x => x.SectionTemplate);
-        }
+        var spec = new Specification<PublishedSnapshotPage>();
+        if (hideDisabled) spec.Query.Where(p => !p.Disabled);
+        if (Guid.TryParse(identifier, out var id))
+            spec.Query.Where(p => p.OriginalPageId == id);
+        else
+            spec.Query.Where(p => p.Slug == identifier);
+        spec.Query.Include(x => x.Sections).ThenInclude(x => x.SectionTemplate).AsSplitQuery();
+        return spec;
     }
 }

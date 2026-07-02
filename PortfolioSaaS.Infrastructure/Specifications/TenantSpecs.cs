@@ -3,11 +3,11 @@ using PortfolioSaaS.Domain.Entities;
 
 namespace PortfolioSaaS.Infrastructure.Specifications;
 
-public class TenantSpecs : Specification<Tenant>
+public static class TenantSpecs
 {
-    public static TenantSpecs IncludeTheme(Guid id)
+    public static Specification<Tenant> IncludeTheme(Guid id)
     {
-        var spec = new TenantSpecs();
+        var spec = new Specification<Tenant>();
 
         spec.Query
             .Where(x => x.Id == id)
@@ -16,9 +16,9 @@ public class TenantSpecs : Specification<Tenant>
         return spec;
     }
 
-    public static TenantSpecs IncludeMenu(Guid id)
+    public static Specification<Tenant> IncludeMenu(Guid id)
     {
-        var spec = new TenantSpecs();
+        var spec = new Specification<Tenant>();
 
         spec.Query
             .Where(x => x.Id == id)

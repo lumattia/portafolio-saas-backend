@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using PortfolioSaaS.Domain.Common;
 
 namespace PortfolioSaaS.Domain.Entities;
@@ -11,7 +12,8 @@ public class Page : ITenantEntity
     public string MetaDescription { get; set; } = string.Empty;
     public bool Disabled { get; set; }
     public bool IsDeleted { get; set; }
-    public Guid? SnapshotPageId { get; set; }
+    public bool IsPublished { get; set; }
+    public bool ToPublish { get; set; }
 
     // Navigation
     public Tenant Tenant { get; set; } = null!;

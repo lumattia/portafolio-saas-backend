@@ -28,7 +28,7 @@ public class MenuService(
         if (tenantId == null)
             return null;
 
-        var page = await _pageRepository.FirstOrDefaultBySpecAsync(PageSpecs.GetBySlug(request.PageSlug));
+        var page = await _pageRepository.FirstOrDefaultBySpecAsync(PageSpecs.GetByIdentifierIncludeSection((request.PageSlug)));
         if (page == null)
         {
             // Create page if not found
@@ -76,7 +76,7 @@ public class MenuService(
         if (menuItem == null)
             return null;
 
-        var page = await _pageRepository.FirstOrDefaultBySpecAsync(PageSpecs.GetBySlug(request.PageSlug));
+        var page = await _pageRepository.FirstOrDefaultBySpecAsync(PageSpecs.GetByIdentifierIncludeSection((request.PageSlug)));
         if (page == null)
         {
             // Create page if not found
@@ -126,7 +126,7 @@ public class MenuService(
 
         var tenant = await _tenantRepository.GetUniqueBySpecAsync(TenantSpecs.IncludeMenu(_tenantContext.CurrentTenantId!.Value));
 
-        var menuItems = anonymous ? tenant.MenuItems.Where(m => m.Page!.SnapshotPageId != null) : tenant.MenuItems;
+        var menuItems = anonymous ? tenant.MenuItems.Where(m => m.Page!.IsPublished) : tenant.MenuItems;
         return _mapper.Map<List<MenuDto>>(menuItems.OrderBy(m => m.Order));
     }
 

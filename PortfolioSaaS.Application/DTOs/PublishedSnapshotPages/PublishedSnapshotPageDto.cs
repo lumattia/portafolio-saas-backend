@@ -4,6 +4,7 @@ namespace PortfolioSaaS.Application.DTOs.PublishedSnapshotPages;
 
 public class PublishedSnapshotPageDto
 {
+    public Guid Id { get; set; }
     public string Version { get; set; } = "1.0.0";
     public string Title { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
@@ -12,6 +13,7 @@ public class PublishedSnapshotPageDto
 }
 public class PublishedSnapshotSectionDto
 {
+    public Guid Id { get; set; }
     public string ComponentSelector { get; set; } = "";
     public JsonDocument ContentJson { get; set; } = JsonDocument.Parse("{}");
     public int Order { get; set; }

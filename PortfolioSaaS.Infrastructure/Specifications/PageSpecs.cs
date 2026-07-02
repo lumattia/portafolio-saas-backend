@@ -3,27 +3,17 @@ using PortfolioSaaS.Domain.Entities;
 
 namespace PortfolioSaaS.Infrastructure.Specifications;
 
-public class PageSpecs : Specification<Page>
+public static class PageSpecs
 {
-
-    public static PageSpecs GetBySlug(string slug)
+    public static Specification<Page> GetByIdentifierIncludeSection(string identifier)
     {
-        var spec = new PageSpecs();
-
-        spec.Query
-            .Where(x => x.Slug == slug);
-
-        return spec;
-    }
-    public static PageSpecs GetByIdentifierIncludeSection(string identifier)
-    {
-        var spec = new PageSpecs();
+        var spec = new Specification<Page>();
         if (Guid.TryParse(identifier, out var id))
             spec.Query.Where(x => x.Id == id);
         else
             spec.Query.Where(x => x.Slug == identifier);
 
-        spec.Query.Include(x => x.Sections.OrderBy(s => s.Order)).ThenInclude(x => x.SectionTemplate);
+        spec.Query.Include(x => x.Sections).ThenInclude(x => x.SectionTemplate).AsSplitQuery();
         return spec;
     }
 }

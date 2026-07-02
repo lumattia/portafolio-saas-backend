@@ -1,6 +1,7 @@
 using Ardalis.Specification;
 using AutoMapper;
 using PortfolioSaaS.Application.DTOs.Pages;
+using PortfolioSaaS.Application.DTOs.PublishedSnapshotPages;
 using PortfolioSaaS.Domain.Entities;
 using PortfolioSaaS.Infrastructure.Data;
 using PortfolioSaaS.Infrastructure.Specifications;
@@ -9,11 +10,13 @@ namespace PortfolioSaaS.Infrastructure.Services;
 
 public class PageService(
     TenantBaseRepository<Page> pageRepository,
+    TenantBaseRepository<PublishedSnapshotPage> snapshotPageRepository,
     BaseRepository<SectionTemplate> templateRepository,
     TenantContext tenantContext,
     IMapper mapper)
 {
     private readonly TenantBaseRepository<Page> _pageRepository = pageRepository;
+    private readonly TenantBaseRepository<PublishedSnapshotPage> _snapshotPageRepository = snapshotPageRepository;
     private readonly BaseRepository<SectionTemplate> _templateRepository = templateRepository;
     private readonly TenantContext _tenantContext = tenantContext;
     private readonly IMapper _mapper = mapper;
@@ -64,11 +67,12 @@ public class PageService(
         page.Slug = request.Slug;
         page.MetaDescription = request.MetaDescription;
         page.Disabled = request.Disabled;
+        page.ToPublish = true;
         HashSet<Guid> templatesIds = [];
         // Sync sections recursively
         if (request.Sections != null)
         {
-            await SyncSectionsRecursive(page.Sections, request.Sections, page.Id, null, templatesIds);
+            await SyncSections(page.Sections, request.Sections, page.Id, templatesIds);
         }
         await _pageRepository.SaveAsync(page);
         if (templatesIds.Count > 0)
@@ -78,11 +82,10 @@ public class PageService(
         return _mapper.Map<PageDetailDto>(page);
     }
 
-    private async Task SyncSectionsRecursive(
+    private async Task SyncSections(
         ICollection<Section> existingSections,
-        List<SectionDto> incomingSections,
+        List<SectionRequest> incomingSections,
         Guid pageId,
-        Guid? parentSectionId,
         HashSet<Guid> templatesIds)
     {
         var activeIncomingSections=incomingSections.Where(s => !s.IsDeleted);
@@ -95,7 +98,7 @@ public class PageService(
             .ToList();
         foreach (var section in toRemove)
         {
-            var hasSnapshot = section.SnapshotSectionId != null;
+            var hasSnapshot = section.IsPublished;
             if (hasSnapshot)
             {
                 section.IsDeleted = true;
@@ -117,7 +120,7 @@ public class PageService(
                 {
                     Id = sectionDto.Id,
                     PageId = pageId,
-                    ParentSectionId = parentSectionId,
+                    ParentSectionId = sectionDto.ParentSectionId,
                     ContentJson = "{}",
                     SectionTemplateId = sectionDto.SectionTemplateId,
                     SubSections = []
@@ -128,19 +131,11 @@ public class PageService(
             existingSection.ContentJson = sectionDto.ContentJson.RootElement.GetRawText();
             existingSection.Order = sectionDto.Order;
             existingSection.IsEnabled = sectionDto.IsEnabled;
-            existingSection.ParentSectionId = parentSectionId;
             existingSection.IsDeleted = sectionDto.IsDeleted;
             if (existingSection.SectionTemplate == null)
             {
                 templatesIds.Add(sectionDto.SectionTemplateId);
             }
-            // Recursively sync sub-sections
-            await SyncSectionsRecursive(
-                existingSection.SubSections,
-                sectionDto.SubSections,
-                pageId,
-                existingSection.Id,
-                templatesIds);
         }
     }
 
@@ -152,7 +147,7 @@ public class PageService(
         var page = await _pageRepository.GetUniqueBySpecAsync(PageSpecs.GetByIdentifierIncludeSection(slug));
 
         // Check if page has a published snapshot
-        var hasSnapshot = page.SnapshotPageId != null;
+        var hasSnapshot = page.IsPublished;
 
         if (hasSnapshot)
         {
@@ -173,7 +168,7 @@ public class PageService(
         if (!_tenantContext.IsAuthenticated)
             return false;
 
-        var page = await _pageRepository.GetUniqueBySpecAsync(PageSpecs.GetBySlug(slug));
+        var page = await _pageRepository.GetUniqueBySpecAsync(PageSpecs.GetByIdentifierIncludeSection((slug)));
 
         // Restore the page by setting IsDeleted to false
         page.IsDeleted = false;
@@ -181,4 +176,79 @@ public class PageService(
 
         return true;
     }
+
+       private void CreateSnapshotSections(List<Section> sections, Guid snapshotPageId, List<PublishedSnapshotSection> snapshotSections = null!)
+    {
+        snapshotSections ??= [];
+
+       for (int i = sections.Count - 1; i >= 0; i--)
+        {
+            var section = sections[i];
+
+            if (section.IsDeleted)
+            {
+                sections.RemoveAt(i);
+                continue;
+            }
+            var snapshotSection = new PublishedSnapshotSection
+            {
+                Id = section.Id,
+                SnapshotPageId = snapshotPageId,
+                OriginalSectionId = section.Id,
+                SectionTemplateId = section.SectionTemplateId,
+                ContentJson = section.ContentJson,
+                Order = section.Order,
+                IsEnabled = section.IsEnabled,
+                ParentSectionId = section.ParentSectionId,
+            };
+            snapshotSections.Add(snapshotSection);
+
+            section.IsPublished = true;
+        }
+    }
+
+    public async Task<PageDetailDto> PublishPageAsync(string slug)
+    {
+        if (!_tenantContext.IsAuthenticated)
+            return null;
+
+        var tenantId = _tenantContext.CurrentTenantId;
+        var page = await _pageRepository.GetUniqueBySpecAsync(PageSpecs.GetByIdentifierIncludeSection(slug));
+
+        // If page is marked for deletion, delete it and its snapshot
+        var existingSnapshotPage = await _snapshotPageRepository.FirstOrDefaultBySpecAsync(
+            PublishedSnapshotPageSpecs.GetByIdentifierIncludeSection(slug, true));
+        if (existingSnapshotPage != null)
+        {
+            await _snapshotPageRepository.DeleteAsync(existingSnapshotPage);
+        }
+        if (page.IsDeleted)
+        {
+            await _pageRepository.DeleteAsync(page);
+            return null;
+        }
+        // Create new snapshot page
+        var snapshotPage = new PublishedSnapshotPage
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId ?? page.TenantId,
+            OriginalPageId = page.Id,
+            Title = page.Title,
+            Slug = page.Slug,
+            Disabled = page.Disabled,
+            MetaDescription = page.MetaDescription,
+            PublishedAt = DateTime.UtcNow,
+        };
+        page.IsPublished = true;
+        page.ToPublish = false;
+        var snapshotSections = new List<PublishedSnapshotSection>();
+        CreateSnapshotSections(page.Sections, snapshotPage.Id, snapshotSections);
+        await _pageRepository.SaveAsync(page);
+
+        snapshotPage.Sections = snapshotSections;
+        await _snapshotPageRepository.SaveAsync(snapshotPage);
+
+        return _mapper.Map<PageDetailDto>(page);
+    }
+
 }
