@@ -8,7 +8,7 @@ namespace PortfolioSaaS.Api.Controllers.Admin;
 [ApiController]
 [Route("api/admin/[controller]")]
 [Authorize(Roles = "PlatformAdmin,TenantOwner")]
-public class PagesController(PageService _pageService) : ControllerBase
+public class PagesController(PageService _pageService, PublishingService publishingService) : ControllerBase
 {
 
     [HttpGet("{*identifier}")]
@@ -41,12 +41,11 @@ public class PagesController(PageService _pageService) : ControllerBase
         return NoContent();
     }
 
-    [HttpPost("{identifier}/publish")]
-    public async Task<ActionResult<PageDetailDto>> Publish(string identifier)
+    [HttpPost("publish")]
+    public async Task<ActionResult<bool>> Publish()
     {
-        var page = await _pageService.PublishPageAsync(identifier);
-        if (page == null) return NotFound();
-        return Ok(page);
+        var result = await publishingService.PublishAsync(true);
+        return result;
     }
 
     [HttpPost("{identifier}/undo-delete")]

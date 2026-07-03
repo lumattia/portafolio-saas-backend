@@ -4,11 +4,11 @@ using PortfolioSaaS.Domain.Entities;
 
 namespace PortfolioSaaS.Infrastructure.Data.Configurations;
 
-public class ThemeConfigConfiguration : IEntityTypeConfiguration<ThemeConfig>
+public class ThemeConfigSnapshotConfiguration : IEntityTypeConfiguration<ThemeConfigSnapshot>
 {
-    public void Configure(EntityTypeBuilder<ThemeConfig> builder)
+    public void Configure(EntityTypeBuilder<ThemeConfigSnapshot> builder)
     {
-        builder.HasKey(tc => tc.Id);
+        builder.HasKey(ms => ms.Id);
         builder.OwnsOne(tc => tc.Light);
         builder.OwnsOne(tc => tc.Dark);
     }

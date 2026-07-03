@@ -8,7 +8,7 @@ public class MenuMappingProfile : Profile
 {
     public MenuMappingProfile()
     {
-        CreateMap<MenuItem, MenuDto>()
-            .ForMember(dest => dest.PageSlug, opt => opt.MapFrom(src => src.Page != null ? src.Page.Slug : null));
+        CreateMap<MenuItem, MenuItemDto>();
+        CreateMap<Menu, MenuDto>();
     }
 }

@@ -41,11 +41,4 @@ public class MenuController(MenuService menuService) : ControllerBase
             return NotFound();
         return Ok();
     }
-
-    [HttpPost("reorder")]
-    public async Task<ActionResult> Reorder([FromBody] List<Guid> menuIds)
-    {
-        await _menuService.ReorderAsync(menuIds);
-        return NoContent();
-    }
 }

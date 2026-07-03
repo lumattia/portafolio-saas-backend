@@ -1,7 +1,6 @@
 using Ardalis.Specification;
 using AutoMapper;
 using PortfolioSaaS.Application.DTOs.Pages;
-using PortfolioSaaS.Application.DTOs.PublishedSnapshotPages;
 using PortfolioSaaS.Domain.Entities;
 using PortfolioSaaS.Infrastructure.Data;
 using PortfolioSaaS.Infrastructure.Specifications;
@@ -10,13 +9,11 @@ namespace PortfolioSaaS.Infrastructure.Services;
 
 public class PageService(
     TenantBaseRepository<Page> pageRepository,
-    TenantBaseRepository<PublishedSnapshotPage> snapshotPageRepository,
     BaseRepository<SectionTemplate> templateRepository,
     TenantContext tenantContext,
     IMapper mapper)
 {
     private readonly TenantBaseRepository<Page> _pageRepository = pageRepository;
-    private readonly TenantBaseRepository<PublishedSnapshotPage> _snapshotPageRepository = snapshotPageRepository;
     private readonly BaseRepository<SectionTemplate> _templateRepository = templateRepository;
     private readonly TenantContext _tenantContext = tenantContext;
     private readonly IMapper _mapper = mapper;
@@ -177,78 +174,6 @@ public class PageService(
         return true;
     }
 
-       private void CreateSnapshotSections(List<Section> sections, Guid snapshotPageId, List<PublishedSnapshotSection> snapshotSections = null!)
-    {
-        snapshotSections ??= [];
-
-       for (int i = sections.Count - 1; i >= 0; i--)
-        {
-            var section = sections[i];
-
-            if (section.IsDeleted)
-            {
-                sections.RemoveAt(i);
-                continue;
-            }
-            var snapshotSection = new PublishedSnapshotSection
-            {
-                Id = section.Id,
-                SnapshotPageId = snapshotPageId,
-                OriginalSectionId = section.Id,
-                SectionTemplateId = section.SectionTemplateId,
-                ContentJson = section.ContentJson,
-                Order = section.Order,
-                IsEnabled = section.IsEnabled,
-                ParentSectionId = section.ParentSectionId,
-            };
-            snapshotSections.Add(snapshotSection);
-
-            section.IsPublished = true;
-        }
-    }
-
-    public async Task<PageDetailDto> PublishPageAsync(string slug)
-    {
-        if (!_tenantContext.IsAuthenticated)
-            return null;
-
-        var tenantId = _tenantContext.CurrentTenantId;
-        var page = await _pageRepository.GetUniqueBySpecAsync(PageSpecs.GetByIdentifierIncludeSection(slug));
-
-        // If page is marked for deletion, delete it and its snapshot
-        var existingSnapshotPage = await _snapshotPageRepository.FirstOrDefaultBySpecAsync(
-            PublishedSnapshotPageSpecs.GetByIdentifierIncludeSection(slug, true));
-        if (existingSnapshotPage != null)
-        {
-            await _snapshotPageRepository.DeleteAsync(existingSnapshotPage);
-        }
-        if (page.IsDeleted)
-        {
-            await _pageRepository.DeleteAsync(page);
-            return null;
-        }
-        // Create new snapshot page
-        var snapshotPage = new PublishedSnapshotPage
-        {
-            Id = Guid.NewGuid(),
-            TenantId = tenantId ?? page.TenantId,
-            OriginalPageId = page.Id,
-            Title = page.Title,
-            Slug = page.Slug,
-            Disabled = page.Disabled,
-            MetaDescription = page.MetaDescription,
-            PublishedAt = DateTime.UtcNow,
-        };
-        page.IsPublished = true;
-        page.ToPublish = false;
-        var snapshotSections = new List<PublishedSnapshotSection>();
-        CreateSnapshotSections(page.Sections, snapshotPage.Id, snapshotSections);
-        await _pageRepository.SaveAsync(page);
-
-        snapshotPage.Sections = snapshotSections;
-        await _snapshotPageRepository.SaveAsync(snapshotPage);
-
-        return _mapper.Map<PageDetailDto>(page);
-    }
+   
 
 }

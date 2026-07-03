@@ -1,3 +1,4 @@
+using Ardalis.Specification;
 using AutoMapper;
 using PortfolioSaaS.Application.DTOs.ThemeConfig;
 using PortfolioSaaS.Domain.Entities;
@@ -15,66 +16,44 @@ public class ThemeConfigService(TenantBaseRepository<ThemeConfig> themeConfigRep
 
     public async Task<ThemeConfigDto?> GetAsync()
     {
-        if (!_tenantContext.IsResolved)
-            return null;
-
-        var tenantId = _tenantContext.CurrentTenantId!.Value;
-        var tenant = await _tenantRepository.GetUniqueBySpecAsync(TenantSpecs.IncludeTheme(tenantId));
-        var config = tenant.ThemeConfig;
-
-        if (config == null)
+        var themeConfig = await _themeConfigRepository.FirstOrDefaultBySpecAsync(new Specification<ThemeConfig>());
+        if (themeConfig == null)
         {
-            config = new ThemeConfig
+            if (_tenantContext.IsResolved)
             {
-                Id = Guid.NewGuid(),
-                TenantId = tenantId
-            };
-            await _themeConfigRepository.SaveAsync(config);
+                themeConfig = new ThemeConfig
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = _tenantContext.CurrentTenantId!.Value
+                };
+                await _themeConfigRepository.SaveAsync(themeConfig);
+            }
+            else
+            {
+                return null;
+            }
         }
 
-        return _mapper.Map<ThemeConfigDto>(config);
+        return _mapper.Map<ThemeConfigDto>(themeConfig);
     }
 
     public async Task<ThemeConfigDto?> UpdateAsync(ThemeConfigDto request)
     {
-        if (!_tenantContext.IsAuthenticated)
-            return null;
-
-        var tenantId = _tenantContext.CurrentTenantId!.Value;
-
-        var tenant = await _tenantRepository.GetUniqueBySpecAsync(TenantSpecs.IncludeTheme(tenantId));
-        var config = tenant.ThemeConfig;
-
-        if (config == null)
+        if (!_tenantContext.IsResolved) return null;
+        var themeConfig = await _themeConfigRepository.GetByIdAsync(request.Id);
+        if (themeConfig == null)
         {
-            config = new ThemeConfig
+            themeConfig = new ThemeConfig
             {
                 Id = Guid.NewGuid(),
-                TenantId = tenantId
+                TenantId = _tenantContext.CurrentTenantId!.Value
             };
-            await _themeConfigRepository.SaveAsync(config);
         }
 
-        config.Light.PrimaryColor = request.Light.PrimaryColor;
-        config.Light.SecondaryColor = request.Light.SecondaryColor;
-        config.Light.BackgroundColor = request.Light.BackgroundColor;
-        config.Light.SurfaceColor = request.Light.SurfaceColor;
-        config.Light.TextColor = request.Light.TextColor;
-        config.Light.TextSecondaryColor = request.Light.TextSecondaryColor;
-        config.Light.FontFamily = request.Light.FontFamily;
-        config.Light.BorderRadius = request.Light.BorderRadius;
+        themeConfig.Light = request.Light;
+        themeConfig.Dark = request.Dark;
+        await _themeConfigRepository.SaveAsync(themeConfig);
 
-        config.Dark.PrimaryColor = request.Dark.PrimaryColor;
-        config.Dark.SecondaryColor = request.Dark.SecondaryColor;
-        config.Dark.BackgroundColor = request.Dark.BackgroundColor;
-        config.Dark.SurfaceColor = request.Dark.SurfaceColor;
-        config.Dark.TextColor = request.Dark.TextColor;
-        config.Dark.TextSecondaryColor = request.Dark.TextSecondaryColor;
-        config.Dark.FontFamily = request.Dark.FontFamily;
-        config.Dark.BorderRadius = request.Dark.BorderRadius;
-
-        await _themeConfigRepository.SaveAsync(config);
-
-        return _mapper.Map<ThemeConfigDto>(config);
+        return _mapper.Map<ThemeConfigDto>(themeConfig);
     }
 }

@@ -85,6 +85,8 @@ public class TenantBaseRepository<T>(ApplicationDbContext db, TenantContext tena
         => ApplySpecification(specification).FirstOrDefaultAsync(cancellationToken);
     public Task<int> CountAsync(Specification<T> specification, CancellationToken cancellationToken = default)
         => ApplySpecification(specification).CountAsync(cancellationToken);
+    public Task<List<T>> GetAll(Specification<T> specification, CancellationToken cancellationToken = default)
+        => ApplySpecification(specification).ToListAsync(cancellationToken);
     public async Task<PagedList<T>> PageBySpecAsync(PagedSpecification<T> specification, CancellationToken cancellationToken = default)
     {
         var totalCount = await CountAsync(specification, cancellationToken);
@@ -145,5 +147,20 @@ public class TenantBaseRepository<T>(ApplicationDbContext db, TenantContext tena
     {
         var evaluator = new SpecificationEvaluator();
         return evaluator.GetQuery(BuildQuery(), spec);
+    }
+    public async Task BeginTransactionAsync()
+    {
+        await _db.Database.BeginTransactionAsync();
+        _db.AutoSaveEnabled = false;
+    }
+    public async Task CommitTransactionAsync(CancellationToken cancellationToken = default)
+    {
+        _db.AutoSaveEnabled = true;
+        await _db.SaveChangesAsync(cancellationToken);
+        await _db.Database.CommitTransactionAsync(cancellationToken);
+    }
+    public async Task RollbackTransactionAsync(CancellationToken cancellationToken = default)
+    {
+        await _db.Database.RollbackTransactionAsync(cancellationToken);
     }
 }

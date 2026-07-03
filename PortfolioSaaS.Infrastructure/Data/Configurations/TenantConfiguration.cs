@@ -13,8 +13,12 @@ public class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.Property(t => t.ConfiguredDomain).HasMaxLength(256).IsRequired();
 
         builder.HasOne(t => t.User)
-            .WithOne(u => u.Tenant)
+            .WithOne()
             .HasForeignKey<User>(u => u.TenantId)
             .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(t => t.CurrentVersion)
+            .WithMany()
+            .HasForeignKey(u => u.CurrentVersionId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

@@ -17,7 +17,4 @@ public class Asset : ITenantEntity
     public string FileName { get; set; } = string.Empty;
     public string FileUrl { get; set; } = string.Empty;
     public string? MetadataJson { get; set; }
-
-    // Navigation
-    public Tenant Tenant { get; set; } = null!;
 }

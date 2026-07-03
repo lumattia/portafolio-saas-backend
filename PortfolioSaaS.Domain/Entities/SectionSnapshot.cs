@@ -1,8 +1,6 @@
-using System.Collections.ObjectModel;
-
 namespace PortfolioSaaS.Domain.Entities;
 
-public class PublishedSnapshotSection
+public class SectionSnapshot
 {
     public Guid Id { get; set; }
     public Guid SnapshotPageId { get; set; }
@@ -11,13 +9,10 @@ public class PublishedSnapshotSection
     public string ContentJson { get; set; } = "{}";
     public int Order { get; set; }
     public bool IsEnabled { get; set; }
-
     // Hierarchical structure
     public Guid? ParentSectionId { get; set; }
 
     // Navigation
-    public PublishedSnapshotPage SnapshotPage { get; set; } = null!;
     public SectionTemplate SectionTemplate { get; set; } = null!;
-    public PublishedSnapshotSection? ParentSection { get; set; }
-    public List<PublishedSnapshotSection> SubSections { get; set; } = [];
+    public List<SectionSnapshot> SubSections { get; set; } = [];
 }

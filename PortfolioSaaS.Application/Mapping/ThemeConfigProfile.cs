@@ -9,6 +9,5 @@ public class ThemeConfigProfile : Profile
     public ThemeConfigProfile()
     {
         CreateMap<ThemeConfig, ThemeConfigDto>();
-        CreateMap<Color, ColorDto>();
     }
 }

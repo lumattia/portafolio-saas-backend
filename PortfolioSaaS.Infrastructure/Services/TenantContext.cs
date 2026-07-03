@@ -12,6 +12,7 @@ public class TenantContext
     public bool IsAuthenticated => CurrentUser != null;
     public bool IsResolved => CurrentTenant != null;
     public bool IsPlatformAdmin => CurrentUserRole == UserRole.PlatformAdmin;
+    public PublishedVersion? CurrentVersion => CurrentTenant?.CurrentVersion;
 
     public void SetTenant(Tenant currentTenant)
     {

@@ -1,21 +1,20 @@
-using System.Collections.ObjectModel;
 using PortfolioSaaS.Domain.Common;
 
 namespace PortfolioSaaS.Domain.Entities;
 
-public class PublishedSnapshotPage : ITenantEntity
+public class PageSnapshot : ISnapshot
 {
     public Guid Id { get; set; }
     public Guid TenantId { get; set; }
     public Guid OriginalPageId { get; set; }
+    public Guid PublishedVersionId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public string MetaDescription { get; set; } = string.Empty;
-    public bool Disabled {get; set;} = false;
-    public DateTime PublishedAt { get; set; } = DateTime.UtcNow;
+    public bool Disabled { get; set; }
+    public bool IsDeleted { get; set; }
 
     // Navigation
-    public Tenant Tenant { get; set; } = null!;
-    public List<PublishedSnapshotSection> Sections { get; set; } = [];
-
+    public List<SectionSnapshot> Sections { get; set; } = [];
+    public PublishedVersion PublishedVersion { get; set; } = null!;
 }

@@ -10,6 +10,5 @@ public class AssetConfiguration : IEntityTypeConfiguration<Asset>
     {
         builder.HasKey(a => a.Id);
         builder.Property(a => a.FileUrl).HasMaxLength(500).IsRequired();
-        builder.HasOne(a => a.Tenant).WithMany().HasForeignKey(a => a.TenantId);
     }
 }

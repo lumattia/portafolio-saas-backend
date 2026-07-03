@@ -4,12 +4,11 @@ using PortfolioSaaS.Domain.Entities;
 
 namespace PortfolioSaaS.Infrastructure.Data.Configurations;
 
-public class SectionConfiguration : IEntityTypeConfiguration<Section>
+public class SectionSnapshotConfiguration : IEntityTypeConfiguration<SectionSnapshot>
 {
-    public void Configure(EntityTypeBuilder<Section> builder)
+    public void Configure(EntityTypeBuilder<SectionSnapshot> builder)
     {
         builder.HasKey(s => s.Id);
-        builder.Property(s => s.Id).ValueGeneratedNever();
         builder.Property(s => s.ContentJson).HasColumnType("jsonb").IsRequired();
         builder.HasOne(s => s.SectionTemplate).WithMany().HasForeignKey(s => s.SectionTemplateId);
 

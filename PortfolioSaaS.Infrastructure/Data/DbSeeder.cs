@@ -1,8 +1,8 @@
+using Ardalis.Specification;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PortfolioSaaS.Domain.Entities;
 using PortfolioSaaS.Domain.Enums;
-using Ardalis.Specification;
 
 namespace PortfolioSaaS.Infrastructure.Data;
 
@@ -103,34 +103,35 @@ public static class DbSeeder
                 PrimaryColor = "#6366f1"
             }
         };
-
-        var menuItems = new List<MenuItem>
+        var menu = new Menu
         {
+            Id = Guid.NewGuid(),
+            TenantId = admin.Id,
+            Type = MenuType.Sidebar,
+            MenuItems =
+        [
             new()
             {
                 Id = Guid.NewGuid(),
-                TenantId = demoTenant.Id,
                 Text = "Home",
-                IsExternal = false,
-                PageId = homePageId,
+                Url = "",
                 Order = 0
             },
             new()
             {
                 Id = Guid.NewGuid(),
-                TenantId = demoTenant.Id,
                 Text = "GitHub",
-                IsExternal = true,
-                ExternalUrl = "https://github.com",
+                Url = "https://github.com",
                 Order = 1
             }
+        ]
         };
 
         db.Tenants.AddRange(admin, demoTenant);
         db.Users.AddRange(adminUser, demoUser);
         db.Pages.Add(homePage);
         db.ThemeConfigs.Add(themeConfig);
-        db.MenuItems.AddRange(menuItems);
+        db.Menus.Add(menu);
         await db.SaveChangesAsync();
 
         db.Tenants.Update(demoTenant);

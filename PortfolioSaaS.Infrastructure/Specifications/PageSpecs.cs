@@ -16,4 +16,11 @@ public static class PageSpecs
         spec.Query.Include(x => x.Sections).ThenInclude(x => x.SectionTemplate).AsSplitQuery();
         return spec;
     }
+    public static Specification<Page> ToPublish()
+    {
+        var spec = new Specification<Page>();
+        spec.Query.Where(x => x.ToPublish);
+        spec.Query.Include(x => x.Sections).ThenInclude(x => x.SectionTemplate).AsSplitQuery();
+        return spec;
+    }
 }

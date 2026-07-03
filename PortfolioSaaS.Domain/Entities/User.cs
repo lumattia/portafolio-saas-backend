@@ -10,7 +10,4 @@ public class User : ITenantEntity
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public UserRole Role { get; set; }
-
-    // Navigation
-    public Tenant Tenant { get; set; } = null!;
 }
