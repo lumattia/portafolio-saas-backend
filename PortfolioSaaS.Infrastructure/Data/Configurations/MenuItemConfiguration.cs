@@ -9,5 +9,6 @@ public class MenuItemConfiguration : IEntityTypeConfiguration<MenuItem>
     public void Configure(EntityTypeBuilder<MenuItem> builder)
     {
         builder.HasKey(m => m.Id);
+        builder.Property(s => s.Id).ValueGeneratedNever();
     }
 }

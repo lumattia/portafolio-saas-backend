@@ -2,6 +2,7 @@ using AutoMapper;
 using PortfolioSaaS.Application.DTOs.Menus;
 using PortfolioSaaS.Domain.Entities;
 using PortfolioSaaS.Infrastructure.Data;
+using PortfolioSaaS.Infrastructure.Specifications;
 
 namespace PortfolioSaaS.Infrastructure.Services;
 
@@ -28,12 +29,12 @@ public class MenuService(
             Id = request.Id ?? Guid.NewGuid(),
             TenantId = tenantId.Value,
             Type = request.Type,
-            MenuItems = [.. request.MenuItems.ConvertAll(mi => new MenuItem
+            MenuItems = [.. request.MenuItems.Select((mi, index) => new MenuItem
             {
                 Id = mi.Id ?? Guid.NewGuid(),
                 Text = mi.Text,
                 Url = mi.Url,
-                Order = mi.Order
+                Order = index
             })]
         };
 
@@ -49,18 +50,17 @@ public class MenuService(
         if (!_tenantContext.IsAuthenticated)
             return null;
 
-        var menu = await _menuRepository.GetByIdAsync(id);
+        var menu = await _menuRepository.FirstOrDefaultBySpecAsync(MenuSpecs.IncludeMenuItems(id));
         if (menu == null)
             return null;
- 
-        menu.MenuItems = [.. request.MenuItems.ConvertAll(mi => new MenuItem
-            {
-                Id = mi.Id ?? Guid.NewGuid(),
-                Text = mi.Text,
-                Url = mi.Url,
-                Order = mi.Order
-            })];
-
+        menu.MenuItems = [.. request.MenuItems.Select((mi, index) => new MenuItem
+        {
+            Id = mi.Id ?? Guid.NewGuid(),
+            Text = mi.Text,
+            Url = mi.Url,
+            Order = index
+        })];
+        menu.ToPublish = true;
         await _menuRepository.SaveAsync(menu);
 
         var dto = _mapper.Map<MenuDto>(menu);
@@ -81,13 +81,13 @@ public class MenuService(
         return true;
     }
 
-    public async Task<List<MenuDto>> GetAllAsync()
+    public async Task<MenuDto?> GetAsync(MenuType type)
     {
         if (!_tenantContext.IsResolved)
-            return [];
+            return null;
 
-        var menus = await _menuRepository.GetAll(new Ardalis.Specification.Specification<Menu>());
+        var menu = await _menuRepository.FirstOrDefaultBySpecAsync(MenuSpecs.GetByType(type));
 
-        return _mapper.Map<List<MenuDto>>(menus);
+        return _mapper.Map<MenuDto>(menu);
     }
 }

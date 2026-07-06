@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PortfolioSaaS.Application.DTOs.Menus;
 using PortfolioSaaS.Infrastructure.Services;
+using PortfolioSaaS.Domain.Entities;
 
 namespace PortfolioSaaS.Api.Controllers.Admin;
 
@@ -9,11 +10,11 @@ namespace PortfolioSaaS.Api.Controllers.Admin;
 public class MenuController(MenuService menuService) : ControllerBase
 {
     private readonly MenuService _menuService = menuService;
-    [HttpGet]
-    public async Task<ActionResult<List<MenuDto>>> GetMenu()
+    [HttpGet("{type}")]
+    public async Task<ActionResult<MenuDto?>> GetMenu(MenuType type)
     {
-        var menus = await _menuService.GetAllAsync();
-        return Ok(menus);
+        var menu = await _menuService.GetAsync(type);
+        return menu;
     }
     [HttpPost]
     public async Task<ActionResult<MenuDto>> Create(MenuRequest request)

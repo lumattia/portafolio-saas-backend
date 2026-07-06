@@ -7,5 +7,5 @@ public class MenuSnapshotDto
 {
     public MenuType Type { get; set; }
     // Navigation
-    public JsonDocument ContentJson { get; set; } = JsonDocument.Parse("[]");
+    public JsonDocument MenuItems { get; set; } = JsonDocument.Parse("[]");
 }

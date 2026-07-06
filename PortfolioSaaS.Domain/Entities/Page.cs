@@ -12,7 +12,7 @@ public class Page : ITenantEntity
     public bool Disabled { get; set; }
     public bool IsDeleted { get; set; }
     public bool IsPublished { get; set; }
-    public bool ToPublish { get; set; }
+    public bool ToPublish { get; set; } = true;
 
     public List<Section> Sections { get; set; } = [];
 }

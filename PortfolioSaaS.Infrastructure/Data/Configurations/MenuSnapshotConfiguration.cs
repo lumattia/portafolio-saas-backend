@@ -10,5 +10,6 @@ public class MenuItemSnapshotConfiguration : IEntityTypeConfiguration<MenuSnapsh
     {
         builder.HasKey(ms => ms.Id);
         builder.Property(ms => ms.ContentJson).HasColumnType("jsonb").IsRequired();
+        builder.HasIndex(m => new { m.TenantId, m.PublishedVersionId ,m.Type }).IsUnique();
     }
 }

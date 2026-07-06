@@ -29,7 +29,7 @@ public class BaseRepository<T>(ApplicationDbContext db) where T : class
     private async Task<T> Save(T entity, CancellationToken cancellationToken = default)
     {
         var set = _db.Set<T>();
-        var tracked = await GetByIdAsync(GetKeyValues(entity), cancellationToken);
+        var tracked = await GetByIdAsync(_db.Entry(entity).Property("Id").CurrentValue!, cancellationToken);
 
         if (tracked is null)
         {
@@ -113,14 +113,6 @@ public class BaseRepository<T>(ApplicationDbContext db) where T : class
     private IQueryable<T> BuildQuery()
     {
         return _db.Set<T>().AsQueryable();
-    }
-
-    private object[] GetKeyValues(T entity)
-    {
-        var entityType = _db.Model.FindEntityType(typeof(T))!;
-        var key = entityType.FindPrimaryKey()!;
-
-        return [.. key.Properties.Select(p => _db.Entry(entity).Property(p.Name).CurrentValue!)];
     }
     private IQueryable<T> ApplySpecification(ISpecification<T> spec)
     {

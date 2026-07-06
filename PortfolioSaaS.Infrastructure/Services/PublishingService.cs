@@ -1,4 +1,6 @@
+using System.Text.Json;
 using AutoMapper;
+using PortfolioSaaS.Application.DTOs.Menus;
 using PortfolioSaaS.Application.DTOs.Snapshots;
 using PortfolioSaaS.Domain.Entities;
 using PortfolioSaaS.Infrastructure.Data;
@@ -12,6 +14,8 @@ public class PublishingService(
     TenantBaseRepository<ThemeConfigSnapshot> themeConfigSnapshotRepository,
     TenantBaseRepository<PublishedVersion> versionRepository,
     TenantBaseRepository<Page> pageRepository,
+    TenantBaseRepository<Menu> menuRepository,
+    TenantBaseRepository<ThemeConfig> themeConfigRepository,
     BaseRepository<Tenant> tenantRepository,
     TenantContext tenantContext,
     IMapper mapper)
@@ -21,10 +25,15 @@ public class PublishingService(
     private readonly TenantBaseRepository<ThemeConfigSnapshot> _themeConfigSnapshotRepository = themeConfigSnapshotRepository;
     private readonly TenantBaseRepository<PublishedVersion> _versionRepository = versionRepository;
     private readonly TenantBaseRepository<Page> _pageRepository = pageRepository;
+    private readonly TenantBaseRepository<Menu> _menuRepository = menuRepository;
+    private readonly TenantBaseRepository<ThemeConfig> _themeConfigRepository = themeConfigRepository;
     private readonly BaseRepository<Tenant> _tenantRepository = tenantRepository;
     private readonly TenantContext _tenantContext = tenantContext;
     private readonly IMapper _mapper = mapper;
-
+    private readonly JsonSerializerOptions CamelCase = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
     public async Task<PageSnapshotDto?> GetPage(string slug, int? version)
     {
         var snapshotPage = await _pageSnapshotRepository.FirstOrDefaultBySpecAsync(
@@ -34,13 +43,21 @@ public class PublishingService(
 
         return _mapper.Map<PageSnapshotDto>(snapshotPage);
     }
-    public async Task<List<MenuSnapshotDto>> GetAllMenus(int? version)
+    public async Task<MenuSnapshotDto> GetMenu(MenuType type, int? version)
     {
-        var menus = await _menuSnapshotRepository.GetAll(
-            SnapshotsSpecs.GetMenuSnapshots(version ?? _tenantContext.CurrentVersion?.Number));
+        var menus = await _menuSnapshotRepository.FirstOrDefaultBySpecAsync(
+            SnapshotsSpecs.GetMenu(type, version ?? _tenantContext.CurrentVersion?.Number));
 
-        return _mapper.Map<List<MenuSnapshotDto>>(menus);
+        return _mapper.Map<MenuSnapshotDto>(menus);
     }
+    public async Task<ThemeConfigSnapshotDto> GetThemeConfig(int? version)
+    {
+        var themeConfig = await _themeConfigSnapshotRepository.FirstOrDefaultBySpecAsync(
+            SnapshotsSpecs.GetThemeConfig(version ?? _tenantContext.CurrentVersion?.Number));
+
+        return _mapper.Map<ThemeConfigSnapshotDto>(themeConfig);
+    }
+
     public async Task<bool> PublishAsync(bool newVersion)
     {
        if (!_tenantContext.IsAuthenticated)
@@ -49,7 +66,7 @@ public class PublishingService(
         try
         {
             var version = await _versionRepository.FirstOrDefaultBySpecAsync(PublishedVersionSpecs.GetLatestVersion());
-            if (newVersion)
+            if (version == null || newVersion)
             {
                 var versionNumber = version?.Number + 1 ?? 1;
                 version = new PublishedVersion()
@@ -63,7 +80,9 @@ public class PublishingService(
             }
 
             await PublishPages(version.Id);
-
+            await PublishMenu(version.Id);
+            await PublishThemeConfig(version.Id);
+            await UpdateTenantVersion();
             await _versionRepository.CommitTransactionAsync();
             return true;
         }
@@ -75,74 +94,91 @@ public class PublishingService(
     }
     private async Task<bool> PublishPages(Guid versionId)
     {
-        var pages = await _pageRepository.GetAll(PageSpecs.ToPublish());
-         foreach (var page in pages)
-    {
-        var snapshot = await _pageSnapshotRepository.FirstOrDefaultBySpecAsync(
-            SnapshotsSpecs.GetPage(versionId, page.Id));
-
-        if (snapshot == null)
+        var pages = await _pageRepository.GetAll(SnapshotsSpecs.PageToPublish());
+        foreach (var page in pages)
         {
-            snapshot = new PageSnapshot
+            var snapshot = await _pageSnapshotRepository.FirstOrDefaultBySpecAsync(
+                SnapshotsSpecs.GetPage(versionId, page.Id));
+
+            snapshot ??= new PageSnapshot
             {
                 Id = Guid.NewGuid(),
                 PublishedVersionId = versionId,
                 OriginalPageId = page.Id
             };
-        }
 
-        snapshot.Title = page.Title;
-        snapshot.Slug = page.Slug;
-        snapshot.MetaDescription = page.MetaDescription;
-        snapshot.Disabled = page.Disabled;
-        snapshot.IsDeleted = page.IsDeleted;
+            snapshot.Title = page.Title;
+            snapshot.Slug = page.Slug;
+            snapshot.MetaDescription = page.MetaDescription;
+            snapshot.Disabled = page.Disabled;
+            snapshot.IsDeleted = page.IsDeleted;
 
-        page.Sections = page.Sections.Where(s => !s.IsDeleted).ToList();
-        page.Sections.ForEach(s=>s.IsPublished=true);
-        snapshot.Sections = _mapper.Map<List<SectionSnapshot>>(page.Sections);
-        await _pageSnapshotRepository.SaveAsync(snapshot);
+            page.Sections = page.Sections.Where(s => !s.IsDeleted).ToList();
+            page.Sections.ForEach(s=>s.IsPublished=true);
+            snapshot.Sections = _mapper.Map<List<SectionSnapshot>>(page.Sections);
+            await _pageSnapshotRepository.SaveAsync(snapshot);
 
-        page.IsPublished = true;
-        page.ToPublish = false;
+            page.IsPublished = true;
+            page.ToPublish = false;
 
-        if (page.IsDeleted)
-            await _pageRepository.DeleteAsync(page);
-        else
-            await _pageRepository.SaveAsync(page);
+            if (page.IsDeleted)
+                await _pageRepository.DeleteAsync(page);
+            else
+                await _pageRepository.SaveAsync(page);
         }
         return true;
     }
-    private void CreateSnapshotSections(List<Section> sections, Guid snapshotPageId, List<SectionSnapshot> snapshotSections)
+    private async Task<bool> PublishMenu(Guid versionId)
     {
-       for (int i = sections.Count - 1; i >= 0; i--)
+        var menus = await _menuRepository.GetAll(SnapshotsSpecs.MenuToPublish());
+        foreach (var menu in menus)
         {
-            var section = sections[i];
+            var snapshot = await _menuSnapshotRepository.FirstOrDefaultBySpecAsync(
+                SnapshotsSpecs.GetMenu(versionId, menu.Id));
 
-            if (section.IsDeleted)
-            {
-                sections.RemoveAt(i);
-                continue;
-            }
-            var snapshotSection = new SectionSnapshot
-            {
-                Id = section.Id,
-                SnapshotPageId = snapshotPageId,
-                OriginalSectionId = section.Id,
-                SectionTemplateId = section.SectionTemplateId,
-                ContentJson = section.ContentJson,
-                Order = section.Order,
-                IsEnabled = section.IsEnabled,
-                ParentSectionId = section.ParentSectionId,
+            snapshot ??= new MenuSnapshot
+                {
+                Id = Guid.NewGuid(),
+                Type = menu.Type,
+                PublishedVersionId = versionId,
+                    OriginalMenuId = menu.Id
             };
-            snapshotSections.Add(snapshotSection);
+            snapshot.ContentJson = JsonSerializer.Serialize(_mapper.Map<List<MenuItemDto>>(menu.MenuItems), CamelCase);
+            await _menuSnapshotRepository.SaveAsync(snapshot);
 
-            section.IsPublished = true;
+            menu.ToPublish = false;
+            await _menuRepository.SaveAsync(menu);
         }
+        return true;
     }
-    private async Task UpdateTenantVersion()
+        private async Task<bool> PublishThemeConfig(Guid versionId)
     {
-        var tenant = await tenantRepository.GetUniqueBySpecAsync(TenantSpecs.IncludeVersion(_tenantContext.CurrentTenant!.Id));
+        var themeConfigs = await _themeConfigRepository.GetAll(SnapshotsSpecs.ThemeConfigToPublish());
+        foreach (var themeConfig in themeConfigs)
+        {
+            var snapshot = await _themeConfigSnapshotRepository.FirstOrDefaultBySpecAsync(
+                SnapshotsSpecs.GetThemeConfig(versionId, themeConfig.Id));
+
+            snapshot ??= new ThemeConfigSnapshot
+                {
+                    Id = Guid.NewGuid(),
+                    PublishedVersionId = versionId,
+                    OriginalThemeConfigId = themeConfig.Id
+            };
+            snapshot.Light = themeConfig.Light;
+            snapshot.Dark = themeConfig.Dark;
+            await _themeConfigSnapshotRepository.SaveAsync(snapshot);
+
+            themeConfig.ToPublish = false;
+            await _themeConfigRepository.SaveAsync(themeConfig);
+        }
+        return true;
+    }
+    private async Task<bool> UpdateTenantVersion()
+    {
+        var tenant = await _tenantRepository.GetUniqueBySpecAsync(TenantSpecs.IncludeVersion(_tenantContext.CurrentTenant!.Id));
         tenant!.CurrentVersionId = null;
         await _tenantRepository.SaveAsync(tenant);
+        return true;
     }
 }

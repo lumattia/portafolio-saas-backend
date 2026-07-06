@@ -1,6 +1,4 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PortfolioSaaS.Domain.Common;
 using PortfolioSaaS.Domain.Entities;
 
@@ -38,12 +36,15 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             }
             if (typeof(ISnapshot).IsAssignableFrom(entityType.ClrType))
             {
-                modelBuilder.Entity(entityType.ClrType)
-                    .HasIndex([
-                        nameof(ISnapshot.TenantId),
-                        nameof(ISnapshot.PublishedVersionId)
-                    ])
-                    .IsUnique();
+                if (entityType.ClrType != typeof(MenuSnapshot))
+                {
+                    modelBuilder.Entity(entityType.ClrType)
+                        .HasIndex([
+                            nameof(ISnapshot.TenantId),
+                            nameof(ISnapshot.PublishedVersionId)
+                        ])
+                        .IsUnique();
+                }
                 modelBuilder.Entity(entityType.ClrType)
                     .HasOne(nameof(ISnapshot.PublishedVersion))
                     .WithMany()
