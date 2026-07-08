@@ -1,6 +1,7 @@
 using Ardalis.Specification;
 using AutoMapper;
 using PortfolioSaaS.Application.DTOs.Pages;
+using PortfolioSaaS.Application.DTOs.Renderer;
 using PortfolioSaaS.Domain.Entities;
 using PortfolioSaaS.Infrastructure.Data;
 using PortfolioSaaS.Infrastructure.Specifications;
@@ -18,7 +19,7 @@ public class PageService(
     private readonly TenantContext _tenantContext = tenantContext;
     private readonly IMapper _mapper = mapper;
 
-    public async Task<PageDetailDto?> GetByIdentifier(string identifier)
+    public async Task<PageRenderer?> GetByIdentifier(string identifier)
     {
         if (!_tenantContext.IsAuthenticated)
             return null;
@@ -27,10 +28,10 @@ public class PageService(
 
         if (page == null) return null;
 
-        return _mapper.Map<PageDetailDto>(page);
+        return _mapper.Map<PageRenderer>(page);
     }
 
-    public async Task<PageDto?> CreateAsync(PageRequest request)
+    public async Task<PageRenderer?> CreateAsync(PageRequest request)
     {
         if (!_tenantContext.IsAuthenticated)
             return null;
@@ -50,10 +51,10 @@ public class PageService(
 
         await _pageRepository.SaveAsync(page);
 
-        return _mapper.Map<PageDto>(page);
+        return _mapper.Map<PageRenderer>(page);
     }
 
-    public async Task<PageDetailDto?> UpdateWithSectionsAsync(string slug, PageRequest request)
+    public async Task<PageRenderer?> UpdateWithSectionsAsync(string slug, PageRequest request)
     {
         if (!_tenantContext.IsAuthenticated)
             return null;
@@ -76,7 +77,7 @@ public class PageService(
         {
             await Task.WhenAll(templatesIds.Select(id => _templateRepository.GetByIdAsync(id)));
         }
-        return _mapper.Map<PageDetailDto>(page);
+        return _mapper.Map<PageRenderer>(page);
     }
 
     private async Task SyncSections(

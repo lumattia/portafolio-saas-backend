@@ -12,9 +12,9 @@ public class SiteController(PublishingService publishingService) : ControllerBas
     private readonly PublishingService _publishingService = publishingService;
 
     [HttpPost("publish")]
-    public async Task<ActionResult<bool>> Publish()
+    public async Task<ActionResult<bool>> Publish([FromQuery] bool newVersion = false)
     {
-        var result = await _publishingService.PublishAsync(true);
+        var result = await _publishingService.PublishAsync(newVersion);
         return Ok(result);
     }
 }

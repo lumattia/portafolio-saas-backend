@@ -4,11 +4,11 @@ using PortfolioSaaS.Domain.Entities;
 
 namespace PortfolioSaaS.Infrastructure.Data.Configurations;
 
-public class MenuSnapshotConfiguration : IEntityTypeConfiguration<MenuSnapshot>
+public class MenuItemSnapshotConfiguration : IEntityTypeConfiguration<MenuItemSnapshot>
 {
-    public void Configure(EntityTypeBuilder<MenuSnapshot> builder)
+    public void Configure(EntityTypeBuilder<MenuItemSnapshot> builder)
     {
         builder.HasKey(ms => ms.Id);
-        builder.HasIndex(m => new { m.TenantId, m.PublishedVersionId ,m.Type }).IsUnique();
+        builder.HasIndex(m => new { m.SnapshotMenuId, m.Id }).IsUnique();
     }
 }

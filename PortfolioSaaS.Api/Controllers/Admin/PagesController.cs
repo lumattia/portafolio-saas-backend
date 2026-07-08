@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PortfolioSaaS.Application.DTOs.Pages;
+using PortfolioSaaS.Application.DTOs.Renderer;
 using PortfolioSaaS.Infrastructure.Services;
 
 namespace PortfolioSaaS.Api.Controllers.Admin;
@@ -12,14 +13,14 @@ public class PagesController(PageService _pageService) : ControllerBase
 {
 
     [HttpGet("{*identifier}")]
-    public async Task<ActionResult<PageDetailDto?>> GetByIdentifier(string? identifier)
+    public async Task<ActionResult<PageRenderer?>> GetByIdentifier(string? identifier)
     {
         var page = await _pageService.GetByIdentifier(identifier ?? "");
         return page;
     }
 
     [HttpPost]
-    public async Task<ActionResult<PageDto>> Create(PageRequest request)
+    public async Task<ActionResult<PageRenderer>> Create(PageRequest request)
     {
         var page = await _pageService.CreateAsync(request);
         if (page == null) return Unauthorized();
@@ -27,7 +28,7 @@ public class PagesController(PageService _pageService) : ControllerBase
     }
 
     [HttpPut("{identifier}")]
-    public async Task<ActionResult<PageDetailDto?>> Update(string identifier, PageRequest request)
+    public async Task<ActionResult<PageRenderer?>> Update(string identifier, PageRequest request)
     {
         var page = await _pageService.UpdateWithSectionsAsync(identifier, request);
         return page is not null ? Ok(page) : NotFound();

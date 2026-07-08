@@ -9,14 +9,14 @@ public static class MenuSpecs
     {
         var spec = new Specification<Menu>();
         spec.Query.Where(m => m.Id == id);
-        spec.Query.Include(m => m.MenuItems);
+        spec.Query.Include(m => m.MenuItems).ThenInclude(mi => mi.SubMenuItems);
         return spec;
     }
-    public static Specification<Menu> GetByType(MenuType? type)
+    public static Specification<Menu> IncludeMenuItems(MenuType type)
     {
         var spec = new Specification<Menu>();
-        spec.Query.Where(m => m.Type == type!.Value, type.HasValue);
-        spec.Query.Include(m => m.MenuItems);
+        spec.Query.Where(m => m.Type == type);
+        spec.Query.Include(m => m.MenuItems).ThenInclude(mi => mi.SubMenuItems);
         return spec;
     }
 }

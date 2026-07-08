@@ -1,5 +1,7 @@
+using Ardalis.Specification;
 using AutoMapper;
 using PortfolioSaaS.Application.DTOs.Menus;
+using PortfolioSaaS.Application.DTOs.Renderer;
 using PortfolioSaaS.Domain.Entities;
 using PortfolioSaaS.Infrastructure.Data;
 using PortfolioSaaS.Infrastructure.Specifications;
@@ -15,14 +17,25 @@ public class MenuService(
     private readonly TenantContext _tenantContext = tenantContext;
     private readonly IMapper _mapper = mapper;
 
-    public async Task<MenuDto?> CreateAsync(MenuRequest request)
+    public async Task<MenuRenderer?> GetByTypeAsync(MenuType type)
+    {
+        if (!_tenantContext.IsAuthenticated)
+            return null;
+        var spec = MenuSpecs.IncludeMenuItems(type);
+        var menu = await _menuRepository.FirstOrDefaultBySpecAsync(spec);
+
+        if (menu == null) return null;
+
+        return _mapper.Map<MenuRenderer>(menu);
+    }
+
+    public async Task<MenuRenderer?> CreateAsync(MenuRequest request)
     {
         if (!_tenantContext.IsAuthenticated)
             return null;
 
         var tenantId = _tenantContext.CurrentTenantId;
-        if (tenantId == null)
-            return null;
+        if (tenantId == null) return null;
 
         var menu = new Menu
         {
@@ -34,38 +47,35 @@ public class MenuService(
                 Id = mi.Id ?? Guid.NewGuid(),
                 Text = mi.Text,
                 Url = mi.Url,
-                Order = index
+                Order = index,
+                ParentMenuItemId = mi.ParentMenuItemId
             })]
         };
 
         await _menuRepository.SaveAsync(menu);
 
-        var dto = _mapper.Map<MenuDto>(menu);
-
-        return dto;
+        return _mapper.Map<MenuRenderer>(menu);
     }
 
-    public async Task<MenuDto?> UpdateAsync(Guid id, MenuRequest request)
+    public async Task<MenuRenderer?> UpdateAsync(Guid id, MenuRequest request)
     {
         if (!_tenantContext.IsAuthenticated)
             return null;
 
-        var menu = await _menuRepository.FirstOrDefaultBySpecAsync(MenuSpecs.IncludeMenuItems(id));
-        if (menu == null)
-            return null;
+        var menu = await _menuRepository.GetUniqueBySpecAsync(MenuSpecs.IncludeMenuItems(id));
+
+        menu.ToPublish = true;
         menu.MenuItems = [.. request.MenuItems.Select((mi, index) => new MenuItem
         {
             Id = mi.Id ?? Guid.NewGuid(),
             Text = mi.Text,
             Url = mi.Url,
-            Order = index
+            Order = index,
+            ParentMenuItemId = mi.ParentMenuItemId,
+            MenuId = menu.Id
         })];
-        menu.ToPublish = true;
         await _menuRepository.SaveAsync(menu);
-
-        var dto = _mapper.Map<MenuDto>(menu);
-
-        return dto;
+        return _mapper.Map<MenuRenderer>(menu);
     }
 
     public async Task<bool> DeleteAsync(Guid id)
@@ -79,15 +89,5 @@ public class MenuService(
 
         await _menuRepository.DeleteAsync(menuItem);
         return true;
-    }
-
-    public async Task<MenuDto?> GetAsync(MenuType type)
-    {
-        if (!_tenantContext.IsResolved)
-            return null;
-
-        var menu = await _menuRepository.FirstOrDefaultBySpecAsync(MenuSpecs.GetByType(type));
-
-        return _mapper.Map<MenuDto>(menu);
     }
 }

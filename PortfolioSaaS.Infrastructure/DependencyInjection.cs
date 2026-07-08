@@ -15,7 +15,7 @@ public static class DependencyInjection
         services.AddAutoMapper(cfg =>
         {
             cfg.AddProfile<AuthProfile>();
-            cfg.AddMaps(Assembly.GetAssembly(typeof(PageProfile)));
+            cfg.AddMaps(Assembly.GetAssembly(typeof(RendererProfile)));
         });
 
         services.AddScoped<TenantContext>();

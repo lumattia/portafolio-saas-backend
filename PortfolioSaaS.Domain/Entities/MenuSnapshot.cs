@@ -10,6 +10,6 @@ public class MenuSnapshot : ISnapshot
     public Guid OriginalMenuId { get; set; }
     public Guid PublishedVersionId { get; set; }
     // Navigation
-    public string ContentJson { get; set; } = "[]";
     public PublishedVersion PublishedVersion { get; set; } = null!;
+    public List<MenuItemSnapshot> MenuItems { get; set; } = [];
 }

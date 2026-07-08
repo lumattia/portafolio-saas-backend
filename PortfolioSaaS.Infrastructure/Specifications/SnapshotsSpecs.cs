@@ -5,7 +5,6 @@ namespace PortfolioSaaS.Infrastructure.Specifications;
 
 public static class SnapshotsSpecs
 {
-    // Get valid version
     public static Specification<PageSnapshot> GetPage(string identifier, bool IsAuthenticated, int? versionNumber)
     {
         var spec = new Specification<PageSnapshot>();
@@ -34,7 +33,6 @@ public static class SnapshotsSpecs
         spec.Query.OrderByDescending(p => p.PublishedVersion.Number).Take(1);
         return spec;
     }
-    // Get toPublish original entity
     public static Specification<Page> PageToPublish()
     {
         var spec = new Specification<Page>();
@@ -46,7 +44,7 @@ public static class SnapshotsSpecs
     {
         var spec = new Specification<Menu>();
         spec.Query.Where(x => x.ToPublish);
-        spec.Query.Include(x => x.MenuItems);
+        spec.Query.Include(x => x.MenuItems).ThenInclude(x => x.SubMenuItems).AsSplitQuery();
         return spec;
     }
     public static Specification<ThemeConfig> ThemeConfigToPublish()
@@ -55,7 +53,6 @@ public static class SnapshotsSpecs
         spec.Query.Where(x => x.ToPublish);
         return spec;
     }
-    // Get specific Version
     public static Specification<PageSnapshot> GetPage(Guid versionId, Guid pageId)
     {
         var spec = new Specification<PageSnapshot>();

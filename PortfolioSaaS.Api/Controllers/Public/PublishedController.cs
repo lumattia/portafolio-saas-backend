@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using PortfolioSaaS.Application.DTOs.Renderer;
 using PortfolioSaaS.Application.DTOs.Snapshots;
 using PortfolioSaaS.Domain.Entities;
 using PortfolioSaaS.Infrastructure.Services;
@@ -13,13 +14,13 @@ public class PublishedController(PublishingService publishingService) : Controll
 
     [HttpGet]
     [HttpGet("{*slug}")]
-    public async Task<ActionResult<PageSnapshotDto?>> Get(string? slug = null)
+    public async Task<ActionResult<PageRenderer?>> Get(string? slug = null)
     {
         var snapshot = await _publishingService.GetPage(slug ?? "", null);
         return snapshot is not null ? Ok(snapshot) : NotFound();
     }
      [HttpGet("menu/{type}")]
-    public async Task<ActionResult<MenuSnapshotDto>> GetMenu(MenuType type)
+    public async Task<ActionResult<MenuRenderer>> GetMenu(MenuType type)
     {
         var menu = await _publishingService.GetMenu(type, null);
         return Ok(menu);

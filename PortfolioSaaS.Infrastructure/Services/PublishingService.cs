@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AutoMapper;
 using PortfolioSaaS.Application.DTOs.Menus;
+using PortfolioSaaS.Application.DTOs.Renderer;
 using PortfolioSaaS.Application.DTOs.Snapshots;
 using PortfolioSaaS.Domain.Entities;
 using PortfolioSaaS.Infrastructure.Data;
@@ -34,21 +35,21 @@ public class PublishingService(
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
-    public async Task<PageSnapshotDto?> GetPage(string slug, int? version)
+    public async Task<PageRenderer?> GetPage(string slug, int? version)
     {
         var snapshotPage = await _pageSnapshotRepository.FirstOrDefaultBySpecAsync(
             SnapshotsSpecs.GetPage(slug, _tenantContext.IsAuthenticated, version ?? _tenantContext.CurrentVersion?.Number));
 
         if (snapshotPage == null) return null;
 
-        return _mapper.Map<PageSnapshotDto>(snapshotPage);
+        return _mapper.Map<PageRenderer>(snapshotPage);
     }
-    public async Task<MenuSnapshotDto> GetMenu(MenuType type, int? version)
+    public async Task<MenuRenderer> GetMenu(MenuType type, int? version)
     {
         var menus = await _menuSnapshotRepository.FirstOrDefaultBySpecAsync(
             SnapshotsSpecs.GetMenu(type, version ?? _tenantContext.CurrentVersion?.Number));
 
-        return _mapper.Map<MenuSnapshotDto>(menus);
+        return _mapper.Map<MenuRenderer>(menus);
     }
     public async Task<ThemeConfigSnapshotDto> GetThemeConfig(int? version)
     {
@@ -137,13 +138,13 @@ public class PublishingService(
                 SnapshotsSpecs.GetMenu(versionId, menu.Id));
 
             snapshot ??= new MenuSnapshot
-                {
+            {
                 Id = Guid.NewGuid(),
                 Type = menu.Type,
                 PublishedVersionId = versionId,
-                    OriginalMenuId = menu.Id
+                OriginalMenuId = menu.Id,
             };
-            snapshot.ContentJson = JsonSerializer.Serialize(_mapper.Map<List<MenuItemDto>>(menu.MenuItems), CamelCase);
+            snapshot.MenuItems = _mapper.Map<List<MenuItemSnapshot>>(menu.MenuItems);
             await _menuSnapshotRepository.SaveAsync(snapshot);
 
             menu.ToPublish = false;

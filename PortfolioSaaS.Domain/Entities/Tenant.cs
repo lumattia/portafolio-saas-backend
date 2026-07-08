@@ -8,6 +8,5 @@ public class Tenant
     public Guid? CurrentVersionId { get; set; }
 
     // Navigation
-    public User? User { get; set; }
     public PublishedVersion? CurrentVersion { get; set; }
 }

@@ -1,10 +1,11 @@
 using PortfolioSaaS.Domain.Common;
 
 namespace PortfolioSaaS.Domain.Entities;
+
 public enum MenuType
 {
     Sidebar,
-    Footer,
+    Footer
 }
 
 public class Menu : ITenantEntity
