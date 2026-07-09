@@ -7,9 +7,9 @@ using PortfolioSaaS.Infrastructure.Specifications;
 
 namespace PortfolioSaaS.Infrastructure.Services;
 
-public class ThemeConfigService(TenantBaseRepository<ThemeConfig> themeConfigRepository, BaseRepository<Tenant> tenantRepository, TenantContext tenantContext, IMapper mapper)
+public class ThemeConfigService(BaseRepository<ThemeConfig> themeConfigRepository, BaseRepository<Tenant> tenantRepository, TenantContext tenantContext, IMapper mapper)
 {
-    private readonly TenantBaseRepository<ThemeConfig> _themeConfigRepository = themeConfigRepository;
+    private readonly BaseRepository<ThemeConfig> _themeConfigRepository = themeConfigRepository;
     private readonly BaseRepository<Tenant> _tenantRepository = tenantRepository;
     private readonly TenantContext _tenantContext = tenantContext;
     private readonly IMapper _mapper = mapper;

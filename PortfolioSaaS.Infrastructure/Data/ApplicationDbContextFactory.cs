@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
+using PortfolioSaaS.Infrastructure.Services;
 
 namespace PortfolioSaaS.Infrastructure.Data;
 
-public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
+public class ApplicationDbContextFactory(TenantContext _tenantContext) : IDesignTimeDbContextFactory<ApplicationDbContext>
 {
     public ApplicationDbContext CreateDbContext(string[] args)
     {
@@ -19,6 +20,6 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
 
         optionsBuilder.UseNpgsql(connectionString);
 
-        return new ApplicationDbContext(optionsBuilder.Options);
+        return new ApplicationDbContext(optionsBuilder.Options, _tenantContext);
     }
 }

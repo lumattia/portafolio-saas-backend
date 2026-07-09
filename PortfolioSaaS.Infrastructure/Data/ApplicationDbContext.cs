@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using PortfolioSaaS.Domain.Common;
 using PortfolioSaaS.Domain.Entities;
+using PortfolioSaaS.Infrastructure.Services;
 
 namespace PortfolioSaaS.Infrastructure.Data;
 
-public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, TenantContext _tenantContext) : DbContext(options)
 {
     public bool AutoSaveEnabled { get; set; } = true;
     public DbSet<Tenant> Tenants => Set<Tenant>();
@@ -33,6 +34,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                     .WithMany()
                     .HasForeignKey(nameof(ITenantEntity.TenantId))
                     .OnDelete(DeleteBehavior.Cascade);
+                ConfigureTenantFilter(modelBuilder, entityType.ClrType);
             }
             if (typeof(ISnapshot).IsAssignableFrom(entityType.ClrType))
             {
@@ -52,6 +54,21 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                     .OnDelete(DeleteBehavior.Cascade);
             }
         }
+    }
+    private void ConfigureTenantFilter(ModelBuilder modelBuilder, Type entityType)
+    {
+        // Esto invoca el método SetTenantFilter<TEntity> de forma genérica
+        var method = typeof(ApplicationDbContext)
+            .GetMethod(nameof(SetTenantFilter), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            .MakeGenericMethod(entityType);
+
+        method.Invoke(this, new object[] { modelBuilder });
+    }
+
+    private void SetTenantFilter<TEntity>(ModelBuilder modelBuilder) where TEntity : class, ITenantEntity
+    {
+        // Aquí ocurre la magia: EF Core inyectará el filtro automáticamente
+        modelBuilder.Entity<TEntity>().HasQueryFilter(e => e.TenantId == _tenantContext.CurrentTenantId);
     }
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

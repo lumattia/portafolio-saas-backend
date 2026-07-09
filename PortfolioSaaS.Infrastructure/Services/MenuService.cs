@@ -9,11 +9,11 @@ using PortfolioSaaS.Infrastructure.Specifications;
 namespace PortfolioSaaS.Infrastructure.Services;
 
 public class MenuService(
-    TenantBaseRepository<Menu> menuRepository,
+    BaseRepository<Menu> menuRepository,
     TenantContext tenantContext,
     IMapper mapper)
 {
-    private readonly TenantBaseRepository<Menu> _menuRepository = menuRepository;
+    private readonly BaseRepository<Menu> _menuRepository = menuRepository;
     private readonly TenantContext _tenantContext = tenantContext;
     private readonly IMapper _mapper = mapper;
 

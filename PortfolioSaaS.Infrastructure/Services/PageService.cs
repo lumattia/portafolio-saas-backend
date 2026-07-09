@@ -9,12 +9,12 @@ using PortfolioSaaS.Infrastructure.Specifications;
 namespace PortfolioSaaS.Infrastructure.Services;
 
 public class PageService(
-    TenantBaseRepository<Page> pageRepository,
+    BaseRepository<Page> pageRepository,
     BaseRepository<SectionTemplate> templateRepository,
     TenantContext tenantContext,
     IMapper mapper)
 {
-    private readonly TenantBaseRepository<Page> _pageRepository = pageRepository;
+    private readonly BaseRepository<Page> _pageRepository = pageRepository;
     private readonly BaseRepository<SectionTemplate> _templateRepository = templateRepository;
     private readonly TenantContext _tenantContext = tenantContext;
     private readonly IMapper _mapper = mapper;

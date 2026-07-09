@@ -22,7 +22,7 @@ public static class DependencyInjection
         services.AddScoped<JwtTokenService>();
         services.AddTransient(typeof(PagedListConverter<,>));
         // Register repositories
-        services.AddScoped(typeof(TenantBaseRepository<>));
+        services.AddScoped(typeof(BaseRepository<>));
         services.AddScoped(typeof(BaseRepository<>));
 
         services.AddDbContext<ApplicationDbContext>(options =>

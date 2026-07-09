@@ -10,24 +10,24 @@ using PortfolioSaaS.Infrastructure.Specifications;
 namespace PortfolioSaaS.Infrastructure.Services;
 
 public class PublishingService(
-    TenantBaseRepository<PageSnapshot> pageSnapshotRepository,
-    TenantBaseRepository<MenuSnapshot> menuSnapshotRepository,
-    TenantBaseRepository<ThemeConfigSnapshot> themeConfigSnapshotRepository,
-    TenantBaseRepository<PublishedVersion> versionRepository,
-    TenantBaseRepository<Page> pageRepository,
-    TenantBaseRepository<Menu> menuRepository,
-    TenantBaseRepository<ThemeConfig> themeConfigRepository,
+    BaseRepository<PageSnapshot> pageSnapshotRepository,
+    BaseRepository<MenuSnapshot> menuSnapshotRepository,
+    BaseRepository<ThemeConfigSnapshot> themeConfigSnapshotRepository,
+    BaseRepository<PublishedVersion> versionRepository,
+    BaseRepository<Page> pageRepository,
+    BaseRepository<Menu> menuRepository,
+    BaseRepository<ThemeConfig> themeConfigRepository,
     BaseRepository<Tenant> tenantRepository,
     TenantContext tenantContext,
     IMapper mapper)
 {
-    private readonly TenantBaseRepository<PageSnapshot> _pageSnapshotRepository = pageSnapshotRepository;
-    private readonly TenantBaseRepository<MenuSnapshot> _menuSnapshotRepository = menuSnapshotRepository;
-    private readonly TenantBaseRepository<ThemeConfigSnapshot> _themeConfigSnapshotRepository = themeConfigSnapshotRepository;
-    private readonly TenantBaseRepository<PublishedVersion> _versionRepository = versionRepository;
-    private readonly TenantBaseRepository<Page> _pageRepository = pageRepository;
-    private readonly TenantBaseRepository<Menu> _menuRepository = menuRepository;
-    private readonly TenantBaseRepository<ThemeConfig> _themeConfigRepository = themeConfigRepository;
+    private readonly BaseRepository<PageSnapshot> _pageSnapshotRepository = pageSnapshotRepository;
+    private readonly BaseRepository<MenuSnapshot> _menuSnapshotRepository = menuSnapshotRepository;
+    private readonly BaseRepository<ThemeConfigSnapshot> _themeConfigSnapshotRepository = themeConfigSnapshotRepository;
+    private readonly BaseRepository<PublishedVersion> _versionRepository = versionRepository;
+    private readonly BaseRepository<Page> _pageRepository = pageRepository;
+    private readonly BaseRepository<Menu> _menuRepository = menuRepository;
+    private readonly BaseRepository<ThemeConfig> _themeConfigRepository = themeConfigRepository;
     private readonly BaseRepository<Tenant> _tenantRepository = tenantRepository;
     private readonly TenantContext _tenantContext = tenantContext;
     private readonly IMapper _mapper = mapper;
@@ -105,7 +105,8 @@ public class PublishingService(
             {
                 Id = Guid.NewGuid(),
                 PublishedVersionId = versionId,
-                OriginalPageId = page.Id
+                OriginalPageId = page.Id,
+                TenantId = _tenantContext.CurrentTenantId!.Value
             };
 
             snapshot.Title = page.Title;
@@ -143,6 +144,7 @@ public class PublishingService(
                 Type = menu.Type,
                 PublishedVersionId = versionId,
                 OriginalMenuId = menu.Id,
+                TenantId = _tenantContext.CurrentTenantId!.Value
             };
             snapshot.MenuItems = _mapper.Map<List<MenuItemSnapshot>>(menu.MenuItems);
             await _menuSnapshotRepository.SaveAsync(snapshot);
@@ -164,7 +166,8 @@ public class PublishingService(
                 {
                     Id = Guid.NewGuid(),
                     PublishedVersionId = versionId,
-                    OriginalThemeConfigId = themeConfig.Id
+                OriginalThemeConfigId = themeConfig.Id,
+                TenantId = _tenantContext.CurrentTenantId!.Value
             };
             snapshot.Light = themeConfig.Light;
             snapshot.Dark = themeConfig.Dark;

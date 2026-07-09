@@ -8,9 +8,9 @@ using static PortfolioSaaS.Infrastructure.Specifications.UserSpecs;
 
 namespace PortfolioSaaS.Infrastructure.Services;
 
-public class AuthService(TenantBaseRepository<User> userRepository, JwtTokenService jwtTokenService)
+public class AuthService(BaseRepository<User> userRepository, JwtTokenService jwtTokenService)
 {
-    private readonly TenantBaseRepository<User> _userRepository = userRepository;
+    private readonly BaseRepository<User> _userRepository = userRepository;
     private readonly JwtTokenService _jwtTokenService = jwtTokenService;
 
     public async Task<LoginResponse?> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
