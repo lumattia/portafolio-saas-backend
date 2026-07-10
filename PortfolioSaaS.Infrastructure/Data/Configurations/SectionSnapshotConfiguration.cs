@@ -9,6 +9,7 @@ public class SectionSnapshotConfiguration : IEntityTypeConfiguration<SectionSnap
     public void Configure(EntityTypeBuilder<SectionSnapshot> builder)
     {
         builder.HasKey(s => s.Id);
+        builder.Property(s => s.Id).ValueGeneratedNever();
         builder.Property(s => s.ContentJson).HasColumnType("jsonb").IsRequired();
         builder.HasOne(s => s.SectionTemplate).WithMany().HasForeignKey(s => s.SectionTemplateId);
 

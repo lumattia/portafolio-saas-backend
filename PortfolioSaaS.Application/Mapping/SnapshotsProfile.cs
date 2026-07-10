@@ -13,6 +13,7 @@ public class PublishedSnapshotProfile : Profile
             .ForMember(dest => dest.Id, opt => opt.MapFrom(src => Guid.NewGuid()))
             .ForMember(dest => dest.OriginalSectionId, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.SubSections, opt => opt.MapFrom(src => src.SubSections.Where(s => !s.IsDeleted)));
-        CreateMap<MenuItem, MenuItemSnapshot>();
+        CreateMap<MenuItem, MenuItemSnapshot>()
+            .ForMember(dest => dest.Id, opt => opt.MapFrom(src => Guid.NewGuid()));
     }
 }

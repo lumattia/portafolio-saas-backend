@@ -9,6 +9,7 @@ public class MenuItemSnapshotConfiguration : IEntityTypeConfiguration<MenuItemSn
     public void Configure(EntityTypeBuilder<MenuItemSnapshot> builder)
     {
         builder.HasKey(ms => ms.Id);
+        builder.Property(s => s.Id).ValueGeneratedNever();
         builder.HasIndex(m => new { m.SnapshotMenuId, m.Id }).IsUnique();
     }
 }
