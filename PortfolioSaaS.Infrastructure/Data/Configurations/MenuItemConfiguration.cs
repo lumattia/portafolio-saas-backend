@@ -10,5 +10,9 @@ public class MenuItemConfiguration : IEntityTypeConfiguration<MenuItem>
     {
         builder.HasKey(m => m.Id);
         builder.Property(s => s.Id).ValueGeneratedNever();
+        builder.HasMany(s => s.SubMenuItems)
+            .WithOne()
+            .HasForeignKey(s => s.ParentMenuItemId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
