@@ -11,7 +11,7 @@ public class SectionSnapshot
     public bool IsEnabled { get; set; }
     // Hierarchical structure
     public Guid? ParentSectionId { get; set; }
-
+    public FileReference? File { get; set; }
     // Navigation
     public SectionTemplate SectionTemplate { get; set; } = null!;
     public List<SectionSnapshot> SubSections { get; set; } = [];

@@ -64,8 +64,8 @@ public class PublishingService(
 
     public async Task<bool> PublishAsync(bool newVersion)
     {
-       if (!_tenantContext.IsAuthenticated)
-        return false;
+       if (!_tenantContext.IsAuthenticated) return false;
+        _unitOfWork.RegisterParticipant(_fileStorageService);
         await _unitOfWork.BeginTransactionAsync();
         try
         {

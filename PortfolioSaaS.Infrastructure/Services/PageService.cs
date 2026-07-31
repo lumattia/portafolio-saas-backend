@@ -63,7 +63,7 @@ public class PageService(
     {
         if (!_tenantContext.IsAuthenticated)
             return null;
-
+        _unitOfWork.RegisterParticipant(_fileStorageService);
         await _unitOfWork.BeginTransactionAsync();
 
         try
@@ -155,8 +155,8 @@ public class PageService(
 
             if (sectionDto.File != null)
             {
-                existingSection.File = null;
                 _fileStorageService.QueueDeleteLog(existingSection.File);
+                existingSection.File = null;
                 if (sectionDto.File.Base64 != "")
                 {
                     existingSection.File = _fileStorageService.QueueUpload(

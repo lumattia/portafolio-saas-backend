@@ -88,9 +88,17 @@ public static class DbSeeder
                 Id = Guid.NewGuid(),
                 PageId = homePageId,
                 SectionTemplateId = imageTextTemplate.Id,
-                ContentJson = """{"inputs":{"image":"https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600","text":"About Me"}}""",
+                ContentJson = """{"inputs":{"text":"About Me"}}""",
                 Order = 1,
-                IsEnabled = true
+                IsEnabled = true,
+                File = new FileReference
+                {
+                    Key = "",
+                    FileName = "AboutMe.jpg",
+                    Url = "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600",
+                    MimeType= "image/jpg",
+                    Size = 0
+                }
             });
         }
 
@@ -154,7 +162,6 @@ public static class DbSeeder
                 ComponentSelector = "image",
                 Name = "Image Section",
                 CategoryTags = SectionCategory.Image,
-                DefaultContentJson = """{"image":""}""",
             },
             new()
             {
@@ -162,7 +169,6 @@ public static class DbSeeder
                 ComponentSelector = "rich-text",
                 Name = "Rich Text Section",
                 CategoryTags = SectionCategory.Text ,
-                DefaultContentJson = """{"text":""}""",
             },
             new()
             {

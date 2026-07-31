@@ -7,15 +7,7 @@ using PortfolioSaaS.Infrastructure.Data;
 
 namespace PortfolioSaaS.Infrastructure.Services;
 
-internal interface IFileStorageTransaction
-{
-    void BeginTransaction(CancellationToken cancellationToken = default);
-    Task CommitAsync(CancellationToken cancellationToken = default);
-    Task AfterCommitAsync(CancellationToken cancellationToken = default);
-    Task RollbackTransactionAsync(CancellationToken cancellationToken = default);
-}
-
-public class FileStorageService : IFileStorageTransaction
+public class FileStorageService : ITransactionParticipant
 {
     private readonly IAmazonS3 _s3Client;
     private readonly R2Settings _r2Settings;
@@ -44,7 +36,7 @@ public class FileStorageService : IFileStorageTransaction
         _r2Settings = r2Settings;
         _logger = logger;
     }
-    private void ClearAll()
+    void ITransactionParticipant.ClearAll()
     {
         _pendingUploads.Clear();
         _pendingDeletes.Clear();
@@ -52,18 +44,16 @@ public class FileStorageService : IFileStorageTransaction
         _uploadedInTransactionsKey.Clear();
         _transactionStarted = false;
     }
-    void IFileStorageTransaction.BeginTransaction(CancellationToken cancellationToken = default)
+    void ITransactionParticipant.BeginTransaction(CancellationToken cancellationToken = default)
     {
         if (_transactionStarted) throw new InvalidOperationException("Transaction already started");
-        ClearAll();
         _transactionStarted = true;
     }
 
-    async Task IFileStorageTransaction.CommitAsync(CancellationToken cancellationToken = default)
+    async Task ITransactionParticipant.CommitAsync(CancellationToken cancellationToken = default)
     {
         if (!_transactionStarted)
             throw new InvalidOperationException("FileStorageService transaction not started. Call BeginTransaction first.");
-
 
         try
         {
@@ -79,25 +69,19 @@ public class FileStorageService : IFileStorageTransaction
             }
             return;
         }
-        catch (Exception)
+        catch (Exception e)
         {
-            await ((IFileStorageTransaction)this).RollbackTransactionAsync(cancellationToken);
             throw;
         }
-        finally
-        {
-            ClearAll();
-        }
     }
-    async Task IFileStorageTransaction.AfterCommitAsync(CancellationToken cancellationToken = default)
+    async Task ITransactionParticipant.AfterCommitAsync(CancellationToken cancellationToken = default)
     {
         if (!_transactionStarted)
             throw new InvalidOperationException("FileStorageService transaction not started. Call BeginTransaction first.");
         await DeleteFileLogAsync(_pendingDeletes, cancellationToken);
-        ClearAll();
     }
-    
-    async Task IFileStorageTransaction.RollbackTransactionAsync(CancellationToken cancellationToken = default)
+
+    async Task ITransactionParticipant.RollbackTransactionAsync(CancellationToken cancellationToken = default)
     {
         if (!_transactionStarted)
             throw new InvalidOperationException("FileStorageService transaction not started. Call BeginTransaction first.");
@@ -131,17 +115,18 @@ public class FileStorageService : IFileStorageTransaction
         }
 
         var newKey = $"{folderPath}/{Guid.NewGuid()}{extension}";
-        
+
         try
         {
             var bytes = ParseBase64(base64Data);
-            
+
             var putRequest = new PutObjectRequest
             {
                 BucketName = _r2Settings.BucketName,
                 Key = newKey,
                 ContentType = contentType,
-                InputStream = new MemoryStream(bytes)
+                InputStream = new MemoryStream(bytes),
+                DisablePayloadSigning = true
             };
             _pendingUploads.Add(putRequest);
 
@@ -176,21 +161,29 @@ public class FileStorageService : IFileStorageTransaction
         _pendingDeletes.Add(fileReference.Key);
     }
     private async Task DeleteFileLogAsync(List<string> keys, CancellationToken cancellationToken = default)
-    {if (!_transactionStarted)
+    {
+        if (!_transactionStarted)
             throw new InvalidOperationException("FileStorageService transaction not started. Call BeginTransaction first.");
+        if (keys == null || keys.Count == 0) return;
 
         try
         {
+            var sanitizedKeys = keys
+                .Where(k => !string.IsNullOrWhiteSpace(k))
+                .Select(k => k.TrimStart('/'))
+                .ToList();
+
+            if (sanitizedKeys.Count == 0) return;
             var request = new DeleteObjectsRequest
                 {
                     BucketName = _r2Settings.BucketName,
-                    Objects = keys.Select(key => new KeyVersion { Key = key }).ToList()
+                    Objects = sanitizedKeys.Select(key => new KeyVersion { Key = key }).ToList()
                 };
             await _s3Client.DeleteObjectsAsync(request, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error deleting files: {FileKey}", keys.ToString());
+            _logger.LogWarning(ex, "Error deleting files: {FileKey}", string.Join(", ", keys));
         }
     }
     public virtual async Task SyncFolderAsync(
