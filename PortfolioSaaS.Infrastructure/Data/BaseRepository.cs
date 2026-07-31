@@ -115,19 +115,4 @@ public Task<List<T>> GetAll(Specification<T> specification, CancellationToken ca
         var evaluator = new SpecificationEvaluator();
         return evaluator.GetQuery(_db.Set<T>(), spec);
     }
-        public async Task BeginTransactionAsync()
-    {
-        await _db.Database.BeginTransactionAsync();
-        _db.AutoSaveEnabled = false;
-    }
-    public async Task CommitTransactionAsync(CancellationToken cancellationToken = default)
-    {
-        _db.AutoSaveEnabled = true;
-        await _db.SaveChangesAsync(cancellationToken);
-        await _db.Database.CommitTransactionAsync(cancellationToken);
-    }
-    public Task RollbackTransactionAsync(CancellationToken cancellationToken = default)
-    {
-        return _db.Database.RollbackTransactionAsync(cancellationToken);
-    }
 }

@@ -17,4 +17,9 @@ public class PageSnapshot : ISnapshot
     // Navigation
     public List<SectionSnapshot> Sections { get; set; } = [];
     public PublishedVersion PublishedVersion { get; set; } = null!;
+    
+     public string GetStoragePath()
+    {
+        return $"{TenantId}/{PublishedVersionId}/{Id}";
+    }
 }

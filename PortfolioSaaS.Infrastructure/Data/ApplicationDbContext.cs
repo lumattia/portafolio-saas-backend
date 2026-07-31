@@ -7,7 +7,6 @@ namespace PortfolioSaaS.Infrastructure.Data;
 
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, TenantContext _tenantContext) : DbContext(options)
 {
-    public bool AutoSaveEnabled { get; set; } = true;
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Page> Pages => Set<Page>();
@@ -69,10 +68,5 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     {
         // Aquí ocurre la magia: EF Core inyectará el filtro automáticamente
         modelBuilder.Entity<TEntity>().HasQueryFilter(e => e.TenantId == _tenantContext.CurrentTenantId);
-    }
-    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        if (!AutoSaveEnabled) return 0;
-        return await base.SaveChangesAsync(cancellationToken);
     }
 }

@@ -15,4 +15,8 @@ public class Page : ITenantEntity
     public bool ToPublish { get; set; } = true;
 
     public List<Section> Sections { get; set; } = [];
+    public string GetStoragePath()
+    {
+        return $"{TenantId}/draft/{Id}";
+    }
 }

@@ -1,5 +1,6 @@
 using Ardalis.Specification;
 using AutoMapper;
+using Microsoft.Extensions.Logging;
 using PortfolioSaaS.Application.DTOs.Pages;
 using PortfolioSaaS.Application.DTOs.Renderer;
 using PortfolioSaaS.Domain.Entities;
@@ -12,12 +13,16 @@ public class PageService(
     BaseRepository<Page> pageRepository,
     BaseRepository<SectionTemplate> templateRepository,
     TenantContext tenantContext,
-    IMapper mapper)
+    IMapper mapper,
+    FileStorageService fileStorageService,
+    UnitOfWork unitOfWork)
 {
     private readonly BaseRepository<Page> _pageRepository = pageRepository;
     private readonly BaseRepository<SectionTemplate> _templateRepository = templateRepository;
     private readonly TenantContext _tenantContext = tenantContext;
     private readonly IMapper _mapper = mapper;
+    private readonly FileStorageService _fileStorageService = fileStorageService;
+    private readonly UnitOfWork _unitOfWork = unitOfWork;
 
     public async Task<PageRenderer?> GetByIdentifier(string identifier)
     {
@@ -59,31 +64,45 @@ public class PageService(
         if (!_tenantContext.IsAuthenticated)
             return null;
 
-        var page = await _pageRepository.GetUniqueBySpecAsync(PageSpecs.GetByIdentifierIncludeSection(slug));
+        await _unitOfWork.BeginTransactionAsync();
 
-        page.Title = request.Title;
-        page.Slug = request.Slug;
-        page.MetaDescription = request.MetaDescription;
-        page.Disabled = request.Disabled;
-        page.ToPublish = true;
-        HashSet<Guid> templatesIds = [];
-        // Sync sections recursively
-        if (request.Sections != null)
+        try
         {
-            await SyncSections(page.Sections, request.Sections, page.Id, templatesIds);
+            var page = await _pageRepository.GetUniqueBySpecAsync(PageSpecs.GetByIdentifierIncludeSection(slug));
+
+            page.Title = request.Title;
+            page.Slug = request.Slug;
+            page.MetaDescription = request.MetaDescription;
+            page.Disabled = request.Disabled;
+            page.ToPublish = true;
+            HashSet<Guid> templatesIds = [];
+            // Sync sections recursively
+            if (request.Sections != null)
+            {
+                await SyncSections(page.Sections, request.Sections, page, templatesIds);
+            }
+            await _pageRepository.SaveAsync(page);
+
+            await _unitOfWork.CommitAsync();
+
+            // Loading missing templates
+            if (templatesIds.Count > 0)
+            {
+                await Task.WhenAll(templatesIds.Select(id => _templateRepository.GetByIdAsync(id)));
+            }
+            return _mapper.Map<PageRenderer>(page);
         }
-        await _pageRepository.SaveAsync(page);
-        if (templatesIds.Count > 0)
+        catch (Exception)
         {
-            await Task.WhenAll(templatesIds.Select(id => _templateRepository.GetByIdAsync(id)));
+            await _unitOfWork.RollbackTransactionAsync();
+            throw;
         }
-        return _mapper.Map<PageRenderer>(page);
     }
 
     private async Task SyncSections(
-        ICollection<Section> existingSections,
+        List<Section> existingSections,
         List<SectionRequest> incomingSections,
-        Guid pageId,
+        Page page,
         HashSet<Guid> templatesIds)
     {
         var activeIncomingSections=incomingSections.Where(s => !s.IsDeleted);
@@ -103,6 +122,8 @@ public class PageService(
             }
             else
             {
+                // Delete files from storage when section is hard deleted                
+                _fileStorageService.QueueDeleteLog(section.File);
                 existingSections.Remove(section);
             }
         }
@@ -117,7 +138,8 @@ public class PageService(
                 existingSection = new Section
                 {
                     Id = sectionDto.Id,
-                    PageId = pageId,
+                    Page = page,
+                    PageId = page.Id,
                     ParentSectionId = sectionDto.ParentSectionId,
                     ContentJson = "{}",
                     SectionTemplateId = sectionDto.SectionTemplateId,
@@ -130,6 +152,21 @@ public class PageService(
             existingSection.Order = sectionDto.Order;
             existingSection.IsEnabled = sectionDto.IsEnabled;
             existingSection.IsDeleted = sectionDto.IsDeleted;
+
+            if (sectionDto.File != null)
+            {
+                existingSection.File = null;
+                _fileStorageService.QueueDeleteLog(existingSection.File);
+                if (sectionDto.File.Base64 != "")
+                {
+                    existingSection.File = _fileStorageService.QueueUpload(
+                        sectionDto.File.FileName,
+                        sectionDto.File.ContentType,
+                        sectionDto.File.Base64,
+                        existingSection.GetStoragePath());
+                }
+            }
+
             if (existingSection.SectionTemplate == null)
             {
                 templatesIds.Add(sectionDto.SectionTemplateId);

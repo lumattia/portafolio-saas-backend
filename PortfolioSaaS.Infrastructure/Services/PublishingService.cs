@@ -1,6 +1,6 @@
 using System.Text.Json;
 using AutoMapper;
-using PortfolioSaaS.Application.DTOs.Menus;
+using Microsoft.Extensions.Logging;
 using PortfolioSaaS.Application.DTOs.Renderer;
 using PortfolioSaaS.Application.DTOs.Snapshots;
 using PortfolioSaaS.Domain.Entities;
@@ -19,7 +19,10 @@ public class PublishingService(
     BaseRepository<ThemeConfig> themeConfigRepository,
     BaseRepository<Tenant> tenantRepository,
     TenantContext tenantContext,
-    IMapper mapper)
+    IMapper mapper,
+    FileStorageService fileStorageService,
+    ILogger<PublishingService> logger,
+    UnitOfWork unitOfWork)
 {
     private readonly BaseRepository<PageSnapshot> _pageSnapshotRepository = pageSnapshotRepository;
     private readonly BaseRepository<MenuSnapshot> _menuSnapshotRepository = menuSnapshotRepository;
@@ -31,10 +34,10 @@ public class PublishingService(
     private readonly BaseRepository<Tenant> _tenantRepository = tenantRepository;
     private readonly TenantContext _tenantContext = tenantContext;
     private readonly IMapper _mapper = mapper;
-    private readonly JsonSerializerOptions CamelCase = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
+    private readonly FileStorageService _fileStorageService = fileStorageService;
+    private readonly UnitOfWork _unitOfWork = unitOfWork;
+    private readonly ILogger<PublishingService> _logger = logger;
+    
     public async Task<PageRenderer?> GetPage(string slug, int? version)
     {
         var snapshotPage = await _pageSnapshotRepository.FirstOrDefaultBySpecAsync(
@@ -63,7 +66,7 @@ public class PublishingService(
     {
        if (!_tenantContext.IsAuthenticated)
         return false;
-        await _versionRepository.BeginTransactionAsync();
+        await _unitOfWork.BeginTransactionAsync();
         try
         {
             var version = await _versionRepository.FirstOrDefaultBySpecAsync(PublishedVersionSpecs.GetLatestVersion());
@@ -84,13 +87,13 @@ public class PublishingService(
             await PublishMenu(version.Id);
             await PublishThemeConfig(version.Id);
             await UpdateTenantVersion();
-            await _versionRepository.CommitTransactionAsync();
+            await _unitOfWork.CommitAsync();
             return true;
         }
-        catch (Exception e)
+        catch
         {
-            await _versionRepository.RollbackTransactionAsync();
-            return false;
+            await _unitOfWork.RollbackTransactionAsync();
+            throw; // Re-throw to let caller handle the exception
         }
     }
     private async Task<bool> PublishPages(Guid versionId)
@@ -118,6 +121,7 @@ public class PublishingService(
             page.Sections = page.Sections.Where(s => !s.IsDeleted).ToList();
             page.Sections.ForEach(s=>s.IsPublished=true);
             snapshot.Sections = _mapper.Map<List<SectionSnapshot>>(page.Sections);
+            await CopyPageFilesAsync(page, snapshot);
             await _pageSnapshotRepository.SaveAsync(snapshot);
 
             page.IsPublished = true;
@@ -184,5 +188,15 @@ public class PublishingService(
         tenant!.CurrentVersionId = null;
         await _tenantRepository.SaveAsync(tenant);
         return true;
+    }
+
+    private async Task CopyPageFilesAsync(Page page, PageSnapshot snapshot)
+    {
+        var draftPath = page.GetStoragePath();
+        var versionPath = snapshot.GetStoragePath();
+        
+        await _fileStorageService.SyncFolderAsync(draftPath, versionPath);
+        _logger.LogInformation("Synced files from draft to version {VersionId} for page {PageId}",
+            snapshot.PublishedVersionId, page.Id);
     }
 }

@@ -12,8 +12,16 @@ public class Section
     public bool IsPublished { get; set; }
     // Hierarchical structure
     public Guid? ParentSectionId { get; set; }
+    public FileReference? File { get; set; }
 
     // Navigation
+    public Page? Page { get; set; }
     public SectionTemplate SectionTemplate { get; set; } = null!;
     public List<Section> SubSections { get; set; } = [];
+
+    // Storage path methods
+    public string GetStoragePath()
+    {
+        return Page!.GetStoragePath();
+    }
 }

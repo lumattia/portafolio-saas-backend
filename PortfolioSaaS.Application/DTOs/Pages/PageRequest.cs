@@ -21,4 +21,11 @@ public class SectionRequest
     public bool IsDeleted { get; set; }
     // Hierarchical structure
     public Guid? ParentSectionId { get; set; }
+    public FileReferenceRequest? File { get; set; }
+}
+public class FileReferenceRequest
+{
+    public string Base64 { get; set; } = string.Empty;
+    public string FileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = string.Empty;
 }
