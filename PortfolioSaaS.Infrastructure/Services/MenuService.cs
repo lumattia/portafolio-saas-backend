@@ -42,12 +42,12 @@ public class MenuService(
             Id = request.Id ?? Guid.NewGuid(),
             TenantId = tenantId.Value,
             Type = request.Type,
-            MenuItems = [.. request.MenuItems.Select((mi, index) => new MenuItem
+            MenuItems = [.. request.MenuItems.Select((mi) => new MenuItem
             {
                 Id = mi.Id ?? Guid.NewGuid(),
                 Text = mi.Text,
                 Url = mi.Url,
-                Order = index,
+                Order = mi.Order,
                 ParentMenuItemId = mi.ParentMenuItemId
             })]
         };
@@ -65,12 +65,12 @@ public class MenuService(
         var menu = await _menuRepository.GetUniqueBySpecAsync(MenuSpecs.IncludeMenuItems(id));
 
         menu.ToPublish = true;
-        menu.MenuItems = [.. request.MenuItems.Select((mi, index) => new MenuItem
+        menu.MenuItems = [.. request.MenuItems.Select((mi) => new MenuItem
         {
             Id = mi.Id ?? Guid.NewGuid(),
             Text = mi.Text,
             Url = mi.Url,
-            Order = index,
+            Order = mi.Order,
             ParentMenuItemId = mi.ParentMenuItemId,
             MenuId = menu.Id
         })];

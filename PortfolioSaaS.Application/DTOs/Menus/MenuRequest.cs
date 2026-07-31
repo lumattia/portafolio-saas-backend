@@ -14,6 +14,7 @@ public class MenuItemRequest
     public Guid? Id { get; set; }
     public string Text { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
+    public int Order { get; set; }
     public Guid? ParentMenuItemId { get; set; }
     public List<MenuItemRequest> SubMenuItems { get; set; } = [];
 }
