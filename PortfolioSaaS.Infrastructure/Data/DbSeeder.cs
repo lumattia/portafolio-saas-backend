@@ -153,6 +153,8 @@ public static class DbSeeder
         var imageTextSectionId = Guid.NewGuid();
         var backgroundImageTextSectionId = Guid.NewGuid();
         var carouselSectionId = Guid.NewGuid();
+        var flexSectionId = Guid.NewGuid();
+        var blankSectionId = Guid.NewGuid();
 
         var templates = new List<SectionTemplate>
         {
@@ -189,7 +191,21 @@ public static class DbSeeder
                 Id = carouselSectionId,
                 ComponentSelector = "carousel",
                 Name = "Carousel Section",
-                CategoryTags = SectionCategory.Image | SectionCategory.Container,
+                CategoryTags = SectionCategory.Container,
+            },
+            new()
+            {
+                Id = flexSectionId,
+                ComponentSelector = "flex",
+                Name = "Flex Section",
+                CategoryTags = SectionCategory.Container,
+            },
+            new()
+            {
+                Id = blankSectionId,
+                ComponentSelector = "blank",
+                Name = "Blank Section",
+                CategoryTags = SectionCategory.None,
             }
         };
 
