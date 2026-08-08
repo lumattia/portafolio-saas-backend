@@ -7,4 +7,5 @@ public class FileReference
     public string MimeType { get; set; } = string.Empty;
     public long Size { get; set; }
     public string Url { get; set; } = string.Empty;
+    public FileReference Clone() => (FileReference)MemberwiseClone();
 }

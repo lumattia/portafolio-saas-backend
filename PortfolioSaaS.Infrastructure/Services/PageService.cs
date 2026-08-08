@@ -1,6 +1,7 @@
 using Ardalis.Specification;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 using PortfolioSaaS.Application.DTOs.Pages;
 using PortfolioSaaS.Application.DTOs.Renderer;
 using PortfolioSaaS.Domain.Entities;
@@ -59,7 +60,7 @@ public class PageService(
         return _mapper.Map<PageRenderer>(page);
     }
 
-    public async Task<PageRenderer?> UpdateWithSectionsAsync(string slug, PageRequest request)
+    public async Task<PageRenderer?> UpdateWithSectionsAsync(string slug, PageRequest request, Dictionary<string, IFormFile>? files = null)
     {
         if (!_tenantContext.IsAuthenticated)
             return null;
@@ -79,7 +80,7 @@ public class PageService(
             // Sync sections recursively
             if (request.Sections != null)
             {
-                await SyncSections(page.Sections, request.Sections, page, templatesIds);
+                await SyncSections(page.Sections, request.Sections, page, templatesIds, files);
             }
             await _pageRepository.SaveAsync(page);
 
@@ -103,7 +104,8 @@ public class PageService(
         List<Section> existingSections,
         List<SectionRequest> incomingSections,
         Page page,
-        HashSet<Guid> templatesIds)
+        HashSet<Guid> templatesIds,
+        Dictionary<string, IFormFile>? files = null)
     {
         var activeIncomingSections=incomingSections.Where(s => !s.IsDeleted);
         // Get IDs of incoming sections
@@ -122,7 +124,7 @@ public class PageService(
             }
             else
             {
-                // Delete files from storage when section is hard deleted                
+                // Delete files from storage when section is hard deleted
                 _fileStorageService.QueueDeleteLog(section.File);
                 existingSections.Remove(section);
             }
@@ -153,16 +155,29 @@ public class PageService(
             existingSection.IsEnabled = sectionDto.IsEnabled;
             existingSection.IsDeleted = sectionDto.IsDeleted;
 
-            if (sectionDto.File != null)
+            // Handle file from FormData
+            var fileKey = $"file_{sectionDto.Id}";
+            if (files != null && files.TryGetValue(fileKey, out var formFile))
             {
                 _fileStorageService.QueueDeleteLog(existingSection.File);
                 existingSection.File = null;
-                if (sectionDto.File.Base64 != "")
+
+                // Check if file is a delete marker
+                if (formFile.Length == 0)
                 {
+                    // Delete the file
+                    _fileStorageService.QueueDeleteLog(existingSection.File);
+                    existingSection.File = null;
+                }
+                else
+                {
+                    // Upload the file
+                    await using var stream = formFile.OpenReadStream();
+                    await using var memoryStream = new MemoryStream();
+                    await stream.CopyToAsync(memoryStream);
+
                     existingSection.File = _fileStorageService.QueueUpload(
-                        sectionDto.File.FileName,
-                        sectionDto.File.ContentType,
-                        sectionDto.File.Base64,
+                        formFile,
                         existingSection.GetStoragePath());
                 }
             }

@@ -1,5 +1,6 @@
 using Amazon.S3;
 using Amazon.S3.Model;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using PortfolioSaaS.Domain.Entities;
 using PortfolioSaaS.Infrastructure.Configuration;
@@ -18,14 +19,6 @@ public class FileStorageService : ITransactionParticipant
     private readonly List<string> _pendingDeletes = new();
     private readonly List<string> _uploadedInTransactionsKey = new();
     private bool _transactionStarted = false;
-
-    private class FileUploadOperation
-    {
-        public string FileName { get; set; } = string.Empty;
-        public string ContentType { get; set; } = string.Empty;
-        public string Base64 { get; set; } = string.Empty;
-        public string FolderPath { get; set; } = string.Empty;
-    }
 
     public FileStorageService(
         IAmazonS3 s3Client,
@@ -89,43 +82,31 @@ public class FileStorageService : ITransactionParticipant
         await DeleteFileLogAsync(_uploadedInTransactionsKey, cancellationToken);
     }
 
-    public virtual byte[] ParseBase64(string base64)
-    {
-        if (base64.Contains(','))
-        {
-            base64 = base64.Split(',')[1];
-        }
-        return Convert.FromBase64String(base64);
-    }
-
     public virtual FileReference QueueUpload(
-        string fileName,
-        string contentType,
-        string base64Data,
+        IFormFile file,
         string folderPath,
         CancellationToken cancellationToken = default)
     {if (!_transactionStarted)
             throw new InvalidOperationException("FileStorageService transaction not started. Call BeginTransaction first.");
 
-        var extension = "";
-        var lastDotIndex = fileName.LastIndexOf('.');
-        if (lastDotIndex > 0)
-        {
-            extension = fileName.Substring(lastDotIndex);
-        }
-
+        if (file == null || file.Length == 0)
+            throw new ArgumentException("File cannot be null or empty", nameof(file));
+        var originalFileName = Path.GetFileName(file.FileName);
+        var extension = Path.GetExtension(originalFileName);
+        var contentType = file.ContentType ?? "application/octet-stream";
         var newKey = $"{folderPath}/{Guid.NewGuid()}{extension}";
 
         try
         {
-            var bytes = ParseBase64(base64Data);
-
+        var memoryStream = new MemoryStream();
+        file.CopyTo(memoryStream);
+        memoryStream.Position = 0;
             var putRequest = new PutObjectRequest
             {
                 BucketName = _r2Settings.BucketName,
                 Key = newKey,
                 ContentType = contentType,
-                InputStream = new MemoryStream(bytes),
+                InputStream = memoryStream,
                 DisablePayloadSigning = true
             };
             _pendingUploads.Add(putRequest);
@@ -134,17 +115,13 @@ public class FileStorageService : ITransactionParticipant
             var fileReference = new FileReference
             {
                 Key = newKey,
-                FileName = fileName,
+                FileName = originalFileName,
                 MimeType = contentType,
-                Size = bytes.Length,
+                Size = file.Length,
                 Url = GeneratePublicUrl(newKey)
             };
 
             return fileReference;
-        }
-        catch (FormatException ex)
-        {
-            throw new InvalidOperationException("Invalid Base64 format", ex);
         }
         catch (Exception ex)
         {
@@ -252,7 +229,7 @@ public class FileStorageService : ITransactionParticipant
         }
     }
 
-    private string GeneratePublicUrl(string key)
+    public string GeneratePublicUrl(string key)
     {
         return $"{_r2Settings.PublicUrl.TrimEnd('/')}/{key}";
     }

@@ -117,8 +117,17 @@ public class PublishingService(
             snapshot.MetaDescription = page.MetaDescription;
             snapshot.Disabled = page.Disabled;
             snapshot.IsDeleted = page.IsDeleted;
+            var deletedSections = page.Sections.Where(s => s.IsDeleted).ToList();
+            if (deletedSections.Count > 0)
+            {
+                foreach (var section in deletedSections) 
+                    _fileStorageService.QueueDeleteLog(section.File);
 
-            page.Sections = page.Sections.Where(s => !s.IsDeleted).ToList();
+                var deletedSectionIds = deletedSections.Select(d => d.Id).ToHashSet();
+                foreach (var section in snapshot.Sections.Where(s => deletedSectionIds.Contains(s.OriginalSectionId))) 
+                    _fileStorageService.QueueDeleteLog(section.File);
+            }
+            page.Sections = [.. page.Sections.Where(s => !s.IsDeleted)];
             page.Sections.ForEach(s=>s.IsPublished=true);
             snapshot.Sections = _mapper.Map<List<SectionSnapshot>>(page.Sections);
             await CopyPageFilesAsync(page, snapshot);
@@ -194,8 +203,18 @@ public class PublishingService(
     {
         var draftPath = page.GetStoragePath();
         var versionPath = snapshot.GetStoragePath();
-        
+
         await _fileStorageService.SyncFolderAsync(draftPath, versionPath);
+        snapshot.Sections.ForEach(s =>
+        {
+            if (s.File != null)
+            {
+                var newKey = $"{versionPath.TrimEnd('/')}/{Path.GetFileName(s.File.Key)}";
+                s.File = s.File.Clone();
+                s.File.Key = newKey;
+                s.File.Url = _fileStorageService.GeneratePublicUrl(newKey);
+            }
+        });
         _logger.LogInformation("Synced files from draft to version {VersionId} for page {PageId}",
             snapshot.PublishedVersionId, page.Id);
     }
