@@ -11,5 +11,6 @@ public class ThemeConfigSnapshotConfiguration : IEntityTypeConfiguration<ThemeCo
         builder.HasKey(ms => ms.Id);
         builder.OwnsOne(tc => tc.Light);
         builder.OwnsOne(tc => tc.Dark);
+        builder.HasIndex(p => new { p.TenantId, p.PublishedVersionId }).IsUnique();
     }
 }

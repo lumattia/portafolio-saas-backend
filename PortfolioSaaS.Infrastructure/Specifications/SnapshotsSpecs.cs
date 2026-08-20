@@ -24,6 +24,7 @@ public static class SnapshotsSpecs
         spec.Query.Where(p => p.Type == menuType);
         spec.Query.Where(p => p.PublishedVersion.Number <= versionNumber, versionNumber.HasValue);
         spec.Query.OrderByDescending(p => p.PublishedVersion.Number).Take(1);
+        spec.Query.Include(x => x.MenuItems).ThenInclude(x => x.SubMenuItems).AsSplitQuery();
         return spec;
     }
     public static Specification<ThemeConfigSnapshot> GetThemeConfig(int? versionNumber)
@@ -66,6 +67,7 @@ public static class SnapshotsSpecs
         var spec = new Specification<MenuSnapshot>();
         spec.Query.Where(p => p.PublishedVersionId == versionId);
         spec.Query.Where(p => p.OriginalMenuId == menuId);
+        spec.Query.Include(x => x.MenuItems).ThenInclude(x => x.SubMenuItems).AsSplitQuery();
         return spec;
     }
     public static Specification<ThemeConfigSnapshot> GetThemeConfig(Guid versionId, Guid themeConfigId)

@@ -10,6 +10,10 @@ public class MenuItemSnapshotConfiguration : IEntityTypeConfiguration<MenuItemSn
     {
         builder.HasKey(ms => ms.Id);
         builder.Property(s => s.Id).ValueGeneratedNever();
-        builder.HasIndex(m => new { m.SnapshotMenuId, m.Id }).IsUnique();
+        builder.HasIndex(m => new { m.MenuSnashotId, m.Id }).IsUnique();
+            builder.HasMany(s => s.SubMenuItems)
+            .WithOne()
+            .HasForeignKey(s => s.ParentMenuItemId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

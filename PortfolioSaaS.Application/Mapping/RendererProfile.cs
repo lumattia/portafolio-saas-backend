@@ -34,6 +34,9 @@ public class RendererProfile : Profile
             .ForMember(dest => dest.IsDeleted, opt => opt.MapFrom(_ => false))
             .ForMember(dest => dest.IsEnabled, opt => opt.MapFrom(_ => true));
         // menu snapshot
-        CreateMap<MenuSnapshot, MenuRenderer>();
+        CreateMap<MenuSnapshot, MenuRenderer>()
+            .ForMember(dest => dest.MenuItems, opt => opt.MapFrom(src => src.MenuItems.Where(m => m.ParentMenuItemId == null).OrderBy(s => s.Order)));
+        CreateMap<MenuItemSnapshot, MenuItemRenderer>()
+            .ForMember(dest => dest.SubMenuItems, opt => opt.MapFrom(src => src.SubMenuItems.OrderBy(s => s.Order)));
     }
 }

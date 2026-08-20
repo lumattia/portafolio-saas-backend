@@ -37,15 +37,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             }
             if (typeof(ISnapshot).IsAssignableFrom(entityType.ClrType))
             {
-                if (entityType.ClrType != typeof(MenuSnapshot))
-                {
-                    modelBuilder.Entity(entityType.ClrType)
-                        .HasIndex([
-                            nameof(ISnapshot.TenantId),
-                            nameof(ISnapshot.PublishedVersionId)
-                        ])
-                        .IsUnique();
-                }
                 modelBuilder.Entity(entityType.ClrType)
                     .HasOne(nameof(ISnapshot.PublishedVersion))
                     .WithMany()

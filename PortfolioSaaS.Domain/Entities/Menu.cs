@@ -5,7 +5,8 @@ namespace PortfolioSaaS.Domain.Entities;
 public enum MenuType
 {
     Sidebar,
-    Footer
+    Footer,
+    Header
 }
 
 public class Menu : ITenantEntity
