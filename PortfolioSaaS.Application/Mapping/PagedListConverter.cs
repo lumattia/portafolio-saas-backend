@@ -11,7 +11,7 @@ public class PagedListConverter<TSource, TDestination> : ITypeConverter<PagedLis
         {
             PageIndex = source.PageIndex,
             PageSize = source.PageSize,
-            MaxPageSize = source.MaxPageSize,
+            TotalPages = source.TotalPages,
             List = context.Mapper.Map<List<TDestination>>(source.List)
         };
     }

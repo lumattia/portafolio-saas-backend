@@ -82,25 +82,27 @@ public class FileStorageService : ITransactionParticipant
         await DeleteFileLogAsync(_uploadedInTransactionsKey, cancellationToken);
     }
 
-    public virtual FileReference QueueUpload(
+    public virtual string QueueUpload(
         IFormFile file,
         string folderPath,
         CancellationToken cancellationToken = default)
-    {if (!_transactionStarted)
+    {
+        if (!_transactionStarted)
             throw new InvalidOperationException("FileStorageService transaction not started. Call BeginTransaction first.");
 
         if (file == null || file.Length == 0)
             throw new ArgumentException("File cannot be null or empty", nameof(file));
-        var originalFileName = Path.GetFileName(file.FileName);
-        var extension = Path.GetExtension(originalFileName);
+
+        var extension = Path.GetExtension(file.FileName);
         var contentType = file.ContentType ?? "application/octet-stream";
         var newKey = $"{folderPath}/{Guid.NewGuid()}{extension}";
 
         try
         {
-        var memoryStream = new MemoryStream();
-        file.CopyTo(memoryStream);
-        memoryStream.Position = 0;
+            var memoryStream = new MemoryStream();
+            file.CopyTo(memoryStream);
+            memoryStream.Position = 0;
+
             var putRequest = new PutObjectRequest
             {
                 BucketName = _r2Settings.BucketName,
@@ -111,17 +113,7 @@ public class FileStorageService : ITransactionParticipant
             };
             _pendingUploads.Add(putRequest);
 
-
-            var fileReference = new FileReference
-            {
-                Key = newKey,
-                FileName = originalFileName,
-                MimeType = contentType,
-                Size = file.Length,
-                Url = GeneratePublicUrl(newKey)
-            };
-
-            return fileReference;
+            return newKey;
         }
         catch (Exception ex)
         {
@@ -130,12 +122,13 @@ public class FileStorageService : ITransactionParticipant
         }
     }
 
-    public virtual void QueueDeleteLog(FileReference? fileReference, CancellationToken cancellationToken = default)
-    {if (!_transactionStarted)
+    public virtual void QueueDeleteLog(string key, CancellationToken cancellationToken = default)
+    {
+        if (!_transactionStarted)
             throw new InvalidOperationException("FileStorageService transaction not started. Call BeginTransaction first.");
 
-        if (fileReference == null) return;
-        _pendingDeletes.Add(fileReference.Key);
+        if (string.IsNullOrWhiteSpace(key)) return;
+        _pendingDeletes.Add(key);
     }
     private async Task DeleteFileLogAsync(List<string> keys, CancellationToken cancellationToken = default)
     {
@@ -163,72 +156,6 @@ public class FileStorageService : ITransactionParticipant
             _logger.LogWarning(ex, "Error deleting files: {FileKey}", string.Join(", ", keys));
         }
     }
-    public virtual async Task SyncFolderAsync(
-        string sourceFolderPath,
-        string destinationFolderPath,
-        CancellationToken cancellationToken = default)
-    {if (!_transactionStarted)
-            throw new InvalidOperationException("FileStorageService transaction not started. Call BeginTransaction first.");
-
-        try
-        {
-            // Get all files in source folder
-            var sourceListRequest = new ListObjectsV2Request
-            {
-                BucketName = _r2Settings.BucketName,
-                Prefix = sourceFolderPath + "/"
-            };
-
-            var sourceResponse = await _s3Client.ListObjectsV2Async(sourceListRequest, cancellationToken);
-            var sourceFiles = sourceResponse.S3Objects.Select(o => o.Key).ToHashSet();
-
-            // Get all files in destination folder
-            var destListRequest = new ListObjectsV2Request
-            {
-                BucketName = _r2Settings.BucketName,
-                Prefix = destinationFolderPath + "/"
-            };
-
-            var destResponse = await _s3Client.ListObjectsV2Async(destListRequest, cancellationToken);
-            var destFiles = destResponse.S3Objects.Select(o => o.Key).ToHashSet();
-
-            // Calculate files to copy (in source but not in destination)
-            var filesToCopy = sourceFiles.Where(f => !destFiles.Contains(
-                $"{destinationFolderPath}/{f.Substring(sourceFolderPath.Length + 1)}")).ToList();
-
-            // Calculate files to delete (in destination but not in source)
-            var filesToDelete = destFiles.Where(f => !sourceFiles.Contains(
-                $"{sourceFolderPath}/{f.Substring(destinationFolderPath.Length + 1)}")).ToList();
-
-            // Copy new files
-            if (filesToCopy.Count > 0)
-            {
-                _pendingCopies.AddRange(filesToCopy.Select(sourceKey =>
-                {
-                    var relativePath = sourceKey.Substring(sourceFolderPath.Length + 1);
-                    var destinationKey = $"{destinationFolderPath}/{relativePath}";
-
-                    return new CopyObjectRequest
-                    {
-                        SourceBucket = _r2Settings.BucketName,
-                        SourceKey = sourceKey,
-                        DestinationBucket = _r2Settings.BucketName,
-                        DestinationKey = destinationKey
-                    };
-                }));
-            }
-
-            // Delete files that are no longer in source
-            _pendingDeletes.AddRange(filesToDelete);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error syncing folder from {SourceFolder} to {DestFolder}",
-                sourceFolderPath, destinationFolderPath);
-            throw new InvalidOperationException($"Error syncing folder from {sourceFolderPath} to {destinationFolderPath}", ex);
-        }
-    }
-
     public string GeneratePublicUrl(string key)
     {
         return $"{_r2Settings.PublicUrl.TrimEnd('/')}/{key}";

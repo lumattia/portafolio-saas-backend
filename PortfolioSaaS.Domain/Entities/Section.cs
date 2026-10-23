@@ -12,11 +12,12 @@ public class Section
     public bool IsPublished { get; set; }
     // Hierarchical structure
     public Guid? ParentSectionId { get; set; }
-    public FileReference? File { get; set; }
+    public Guid? MediaId { get; set; }
 
     // Navigation
     public Page? Page { get; set; }
     public SectionTemplate SectionTemplate { get; set; } = null!;
+    public Media? Media { get; set; }
     public List<Section> SubSections { get; set; } = [];
 
     // Storage path methods

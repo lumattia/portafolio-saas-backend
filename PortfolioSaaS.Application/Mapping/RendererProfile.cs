@@ -17,7 +17,6 @@ public class RendererProfile : Profile
             .ForMember(dest => dest.ComponentSelector, opt => opt.MapFrom(src => src.SectionTemplate!.ComponentSelector))
             .ForMember(dest => dest.ContentJson, opt => opt.MapFrom(src => JsonDocument.Parse(src.ContentJson)))
             .ForMember(dest => dest.SubSections, opt => opt.MapFrom(src => src.SubSections.OrderBy(s => s.Order)));
-        CreateMap<FileReference, FileReferenceResponse>();
         //menu
         CreateMap<Menu, MenuRenderer>()
             .ForMember(dest => dest.MenuItems, opt => opt.MapFrom(src => src.MenuItems.Where(m => m.ParentMenuItemId == null).OrderBy(s => s.Order)));

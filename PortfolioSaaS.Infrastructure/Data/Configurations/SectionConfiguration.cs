@@ -15,7 +15,10 @@ public class SectionConfiguration : IEntityTypeConfiguration<Section>
         builder.Property(s => s.ContentJson).HasColumnType("jsonb").IsRequired();
         builder.HasOne(s => s.SectionTemplate).WithMany().HasForeignKey(s => s.SectionTemplateId);
 
-        builder.OwnsOne(s => s.File);
+        builder.HasOne(m => m.Media)
+            .WithMany()
+            .HasForeignKey(s => s.MediaId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Self-referencing relationship for hierarchical sections
         builder.HasMany(s => s.SubSections)

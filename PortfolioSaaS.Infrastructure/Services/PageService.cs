@@ -1,7 +1,7 @@
 using Ardalis.Specification;
 using AutoMapper;
-using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using PortfolioSaaS.Application.DTOs.Pages;
 using PortfolioSaaS.Application.DTOs.Renderer;
 using PortfolioSaaS.Domain.Entities;
@@ -14,16 +14,12 @@ public class PageService(
     BaseRepository<Page> pageRepository,
     BaseRepository<SectionTemplate> templateRepository,
     TenantContext tenantContext,
-    IMapper mapper,
-    FileStorageService fileStorageService,
-    UnitOfWork unitOfWork)
+    IMapper mapper)
 {
     private readonly BaseRepository<Page> _pageRepository = pageRepository;
     private readonly BaseRepository<SectionTemplate> _templateRepository = templateRepository;
     private readonly TenantContext _tenantContext = tenantContext;
     private readonly IMapper _mapper = mapper;
-    private readonly FileStorageService _fileStorageService = fileStorageService;
-    private readonly UnitOfWork _unitOfWork = unitOfWork;
 
     public async Task<PageRenderer?> GetByIdentifier(string identifier)
     {
@@ -64,48 +60,35 @@ public class PageService(
     {
         if (!_tenantContext.IsAuthenticated)
             return null;
-        _unitOfWork.RegisterParticipant(_fileStorageService);
-        await _unitOfWork.BeginTransactionAsync();
 
-        try
+        var page = await _pageRepository.GetUniqueBySpecAsync(PageSpecs.GetByIdentifierIncludeSection(slug));
+
+        page.Title = request.Title;
+        page.Slug = request.Slug;
+        page.MetaDescription = request.MetaDescription;
+        page.Disabled = request.Disabled;
+        page.ToPublish = true;
+        HashSet<Guid> templatesIds = [];
+        // Sync sections recursively
+        if (request.Sections != null)
         {
-            var page = await _pageRepository.GetUniqueBySpecAsync(PageSpecs.GetByIdentifierIncludeSection(slug));
-
-            page.Title = request.Title;
-            page.Slug = request.Slug;
-            page.MetaDescription = request.MetaDescription;
-            page.Disabled = request.Disabled;
-            page.ToPublish = true;
-            HashSet<Guid> templatesIds = [];
-            // Sync sections recursively
-            if (request.Sections != null)
-            {
-                await SyncSections(page.Sections, request.Sections, page, templatesIds, files);
-            }
-            await _pageRepository.SaveAsync(page);
-
-            await _unitOfWork.CommitAsync();
-
-            // Loading missing templates
-            if (templatesIds.Count > 0)
-            {
-                await Task.WhenAll(templatesIds.Select(id => _templateRepository.GetByIdAsync(id)));
-            }
-            return _mapper.Map<PageRenderer>(page);
+            await SyncSections(page.Sections, request.Sections, page, templatesIds);
         }
-        catch (Exception)
+        await _pageRepository.SaveAsync(page);
+
+        // Loading missing templates
+        if (templatesIds.Count > 0)
         {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
+            await Task.WhenAll(templatesIds.Select(id => _templateRepository.GetByIdAsync(id)));
         }
+        return _mapper.Map<PageRenderer>(page);
     }
 
     private async Task SyncSections(
         List<Section> existingSections,
         List<SectionRequest> incomingSections,
         Page page,
-        HashSet<Guid> templatesIds,
-        Dictionary<string, IFormFile>? files = null)
+        HashSet<Guid> templatesIds)
     {
         var activeIncomingSections=incomingSections.Where(s => !s.IsDeleted);
         // Get IDs of incoming sections
@@ -124,8 +107,6 @@ public class PageService(
             }
             else
             {
-                // Delete files from storage when section is hard deleted
-                _fileStorageService.QueueDeleteLog(section.File);
                 existingSections.Remove(section);
             }
         }
@@ -154,33 +135,7 @@ public class PageService(
             existingSection.Order = sectionDto.Order;
             existingSection.IsEnabled = sectionDto.IsEnabled;
             existingSection.IsDeleted = sectionDto.IsDeleted;
-
-            // Handle file from FormData
-            var fileKey = $"file_{sectionDto.Id}";
-            if (files != null && files.TryGetValue(fileKey, out var formFile))
-            {
-                _fileStorageService.QueueDeleteLog(existingSection.File);
-                existingSection.File = null;
-
-                // Check if file is a delete marker
-                if (formFile.Length == 0)
-                {
-                    // Delete the file
-                    _fileStorageService.QueueDeleteLog(existingSection.File);
-                    existingSection.File = null;
-                }
-                else
-                {
-                    // Upload the file
-                    await using var stream = formFile.OpenReadStream();
-                    await using var memoryStream = new MemoryStream();
-                    await stream.CopyToAsync(memoryStream);
-
-                    existingSection.File = _fileStorageService.QueueUpload(
-                        formFile,
-                        existingSection.GetStoragePath());
-                }
-            }
+            existingSection.MediaId = sectionDto.MediaId;
 
             if (existingSection.SectionTemplate == null)
             {
@@ -226,7 +181,4 @@ public class PageService(
 
         return true;
     }
-
-   
-
 }

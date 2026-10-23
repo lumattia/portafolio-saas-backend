@@ -16,6 +16,7 @@ public static class SnapshotsSpecs
         spec.Query.Where(p => p.PublishedVersion.Number <= versionNumber, versionNumber.HasValue);
         spec.Query.OrderByDescending(p => p.PublishedVersion.Number).Take(1);
         spec.Query.Include(x => x.Sections).ThenInclude(x => x.SectionTemplate).AsSplitQuery();
+        spec.Query.Include(x => x.Sections).ThenInclude(x => x.Media).AsSplitQuery();
         return spec;
     }
     public static Specification<MenuSnapshot> GetMenu(MenuType menuType, int? versionNumber)
@@ -39,6 +40,7 @@ public static class SnapshotsSpecs
         var spec = new Specification<Page>();
         spec.Query.Where(x => x.ToPublish);
         spec.Query.Include(x => x.Sections).ThenInclude(x => x.SectionTemplate).AsSplitQuery();
+        spec.Query.Include(x => x.Sections).ThenInclude(x => x.Media).AsSplitQuery();
         return spec;
     }
     public static Specification<Menu> MenuToPublish()
@@ -60,6 +62,7 @@ public static class SnapshotsSpecs
         spec.Query.Where(p => p.PublishedVersionId == versionId);
         spec.Query.Where(p => p.OriginalPageId == pageId);
         spec.Query.Include(x => x.Sections).ThenInclude(x => x.SectionTemplate).AsSplitQuery();
+        spec.Query.Include(x => x.Sections).ThenInclude(x => x.Media).AsSplitQuery();
         return spec;
     }
     public static Specification<MenuSnapshot> GetMenu(Guid versionId, Guid menuId)

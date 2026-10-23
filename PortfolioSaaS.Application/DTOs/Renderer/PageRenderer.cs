@@ -1,4 +1,5 @@
 using System.Text.Json;
+using PortfolioSaaS.Application.DTOs.Media;
 
 namespace PortfolioSaaS.Application.DTOs.Renderer;
 
@@ -23,10 +24,5 @@ public class SectionRenderer
     public bool IsPublished { get; set; }
     public Guid? ParentSectionId { get; set; }
     public List<SectionRenderer> SubSections { get; set; } = [];
-    public FileReferenceResponse? File { get; set; }
-}public class FileReferenceResponse
-{
-    public string FileName { get; set; } = string.Empty;
-    public long Size { get; set; }
-    public string Url { get; set; } = string.Empty;
+    public MediaDto? Media { get; set; }
 }

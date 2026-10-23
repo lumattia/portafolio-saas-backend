@@ -16,7 +16,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Menu> Menus => Set<Menu>();
     public DbSet<MenuItem> MenuItems => Set<MenuItem>();
     public DbSet<Asset> Assets => Set<Asset>();
-    public DbSet<PageSnapshot> PublishedSnapshotPages => Set<PageSnapshot>();
+    public DbSet<Media> Medias => Set<Media>();
+    public DbSet<PageSnapshot> PageSnapshots => Set<PageSnapshot>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

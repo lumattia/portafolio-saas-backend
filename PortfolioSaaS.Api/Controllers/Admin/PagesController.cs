@@ -30,15 +30,9 @@ public class PagesController(PageService _pageService) : ControllerBase
     }
 
     [HttpPut("{identifier}")]
-    public async Task<ActionResult<PageRenderer?>> Update(string identifier, [FromForm] IFormCollection form)
+    public async Task<ActionResult<PageRenderer?>> Update(string identifier, PageRequest request)
     {
-        var json = form["json"].ToString();
-        var request = JsonSerializer.Deserialize<PageRequest>(json, _jsonOptions) ?? new PageRequest();
-        var files = form.Files
-                .Where(f => f.Name.StartsWith("file_"))
-                .ToDictionary(f => f.Name, f => f);
-
-        var page = await _pageService.UpdateWithSectionsAsync(identifier, request, files);
+        var page = await _pageService.UpdateWithSectionsAsync(identifier, request);
         return page is not null ? Ok(page) : NotFound();
     }
 

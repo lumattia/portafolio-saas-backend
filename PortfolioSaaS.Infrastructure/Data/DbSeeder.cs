@@ -90,15 +90,7 @@ public static class DbSeeder
                 SectionTemplateId = imageTextTemplate.Id,
                 ContentJson = """{"inputs":{"text":"About Me"}}""",
                 Order = 1,
-                IsEnabled = true,
-                File = new FileReference
-                {
-                    Key = "",
-                    FileName = "AboutMe.jpg",
-                    Url = "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600",
-                    MimeType= "image/jpg",
-                    Size = 0
-                }
+                IsEnabled = true
             });
         }
 

@@ -14,6 +14,7 @@ public static class PageSpecs
             spec.Query.Where(x => x.Slug == identifier);
 
         spec.Query.Include(x => x.Sections).ThenInclude(x => x.SectionTemplate).AsSplitQuery();
+        spec.Query.Include(x => x.Sections).ThenInclude(x => x.Media).AsSplitQuery();
         return spec;
     }
 }

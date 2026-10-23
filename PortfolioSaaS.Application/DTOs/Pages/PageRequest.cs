@@ -21,4 +21,5 @@ public class SectionRequest
     public bool IsDeleted { get; set; }
     // Hierarchical structure
     public Guid? ParentSectionId { get; set; }
+    public Guid? MediaId { get; set; }
 }

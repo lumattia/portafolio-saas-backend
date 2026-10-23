@@ -96,7 +96,7 @@ public Task<List<T>> GetAll(Specification<T> specification, CancellationToken ca
             List = list,
             PageIndex = page,
             PageSize = pageParams.PageSize,
-            MaxPageSize = (int)Math.Ceiling((double)totalCount / pageParams.PageSize)
+            TotalPages = (int)Math.Ceiling((double)totalCount / pageParams.PageSize)
         };
     }
 
