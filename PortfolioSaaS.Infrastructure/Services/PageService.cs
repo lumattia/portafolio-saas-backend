@@ -1,7 +1,5 @@
 using Ardalis.Specification;
 using AutoMapper;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
 using PortfolioSaaS.Application.DTOs.Pages;
 using PortfolioSaaS.Application.DTOs.Renderer;
 using PortfolioSaaS.Domain.Entities;
@@ -13,11 +11,13 @@ namespace PortfolioSaaS.Infrastructure.Services;
 public class PageService(
     BaseRepository<Page> pageRepository,
     BaseRepository<SectionTemplate> templateRepository,
+    BaseRepository<Media> mediaRepository,
     TenantContext tenantContext,
     IMapper mapper)
 {
     private readonly BaseRepository<Page> _pageRepository = pageRepository;
     private readonly BaseRepository<SectionTemplate> _templateRepository = templateRepository;
+    private readonly BaseRepository<Media> _mediaRepository = mediaRepository;
     private readonly TenantContext _tenantContext = tenantContext;
     private readonly IMapper _mapper = mapper;
 
@@ -56,7 +56,7 @@ public class PageService(
         return _mapper.Map<PageRenderer>(page);
     }
 
-    public async Task<PageRenderer?> UpdateWithSectionsAsync(string slug, PageRequest request, Dictionary<string, IFormFile>? files = null)
+    public async Task<PageRenderer?> UpdateWithSectionsAsync(string slug, PageRequest request)
     {
         if (!_tenantContext.IsAuthenticated)
             return null;
@@ -68,31 +68,23 @@ public class PageService(
         page.MetaDescription = request.MetaDescription;
         page.Disabled = request.Disabled;
         page.ToPublish = true;
-        HashSet<Guid> templatesIds = [];
         // Sync sections recursively
         if (request.Sections != null)
         {
-            await SyncSections(page.Sections, request.Sections, page, templatesIds);
+            await SyncSections(page.Sections, request.Sections, page);
         }
         await _pageRepository.SaveAsync(page);
 
-        // Loading missing templates
-        if (templatesIds.Count > 0)
-        {
-            await Task.WhenAll(templatesIds.Select(id => _templateRepository.GetByIdAsync(id)));
-        }
         return _mapper.Map<PageRenderer>(page);
     }
 
     private async Task SyncSections(
         List<Section> existingSections,
         List<SectionRequest> incomingSections,
-        Page page,
-        HashSet<Guid> templatesIds)
+        Page page)
     {
-        var activeIncomingSections=incomingSections.Where(s => !s.IsDeleted);
         // Get IDs of incoming sections
-        var activeIncomingIds = activeIncomingSections.Select(s => s.Id).ToHashSet();
+        var activeIncomingIds = incomingSections.Where(s => !s.IsDeleted).Select(s => s.Id).ToHashSet();
 
         // Remove sections that are no longer in the incoming list
         var toRemove = existingSections
@@ -110,9 +102,38 @@ public class PageService(
                 existingSections.Remove(section);
             }
         }
+        // Get IDs of already loaded media and templates
+        var loadedMediaIds = existingSections
+            .Where(s => s.Media != null)
+            .Select(s => s.MediaId!.Value)
+            .ToHashSet();
 
+        // Load only media IDs that are not already loaded
+        var mediaIdsToLoad = incomingSections
+            .Where(s => s.MediaId.HasValue && !loadedMediaIds.Contains(s.MediaId.Value))
+            .Select(s => s.MediaId!.Value)
+            .Distinct()
+            .ToList();
+
+        var mediaMap = mediaIdsToLoad.Count > 0
+            ? (await _mediaRepository.GetAll(MediaSpecs.ByIds(mediaIdsToLoad)))
+                .ToDictionary(m => m.Id)
+            : [];
+
+        var loadedTemplateIds = existingSections.Select(s => s.SectionTemplateId).ToHashSet();
+        // Load only template IDs that are not already loaded
+        var templateIdsToLoad = incomingSections
+            .Where(s => !loadedTemplateIds.Contains(s.SectionTemplateId))
+            .Select(s => s.SectionTemplateId)
+            .Distinct()
+            .ToList();
+
+        var templateMap = templateIdsToLoad.Count > 0
+            ? (await _templateRepository.GetAll(SectionTemplateSpecs.ByIds(templateIdsToLoad)))
+                .ToDictionary(t => t.Id)
+            : [];
         // Update or create sections
-        foreach (var sectionDto in activeIncomingSections)
+        foreach (var sectionDto in incomingSections)
         {
             var existingSection = existingSections.FirstOrDefault(s => s.Id == sectionDto.Id);
 
@@ -128,6 +149,7 @@ public class PageService(
                     SectionTemplateId = sectionDto.SectionTemplateId,
                     SubSections = []
                 };
+                if (templateMap.TryGetValue(sectionDto.SectionTemplateId, out var template)) existingSection.SectionTemplate = template;
                 existingSections.Add(existingSection);
             }
 
@@ -135,11 +157,11 @@ public class PageService(
             existingSection.Order = sectionDto.Order;
             existingSection.IsEnabled = sectionDto.IsEnabled;
             existingSection.IsDeleted = sectionDto.IsDeleted;
-            existingSection.MediaId = sectionDto.MediaId;
 
-            if (existingSection.SectionTemplate == null)
+            if (sectionDto.MediaId != existingSection.MediaId)
             {
-                templatesIds.Add(sectionDto.SectionTemplateId);
+                existingSection.MediaId = sectionDto.MediaId;
+                existingSection.Media = sectionDto.MediaId.HasValue && mediaMap.TryGetValue(sectionDto.MediaId.Value, out var media) ? media : null;
             }
         }
     }

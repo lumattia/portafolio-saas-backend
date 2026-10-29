@@ -14,4 +14,10 @@ public static class SectionTemplateSpecs
         spec.Query.Search(x => x.Name.ToLower(), $"%{request.Name?.ToLower()}%", request.Name != null);
         return spec;
     }
+     public static Specification<SectionTemplate> ByIds(List<Guid> ids)
+    {
+        var spec = new Specification<SectionTemplate>();
+        spec.Query.Where(m => ids.Contains(m.Id));
+        return spec;
+    }
 }

@@ -17,4 +17,10 @@ public static class MediaSpecs
         spec.Query.OrderByDescending(x => x.UpdatedAt);
         return spec;
     }
+    public static Specification<Media> ByIds(List<Guid> ids)
+    {
+        var spec = new Specification<Media>();
+        spec.Query.Where(m => ids.Contains(m.Id));
+        return spec;
+    }
 }
