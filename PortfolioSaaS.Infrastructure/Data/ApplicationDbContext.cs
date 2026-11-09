@@ -11,13 +11,19 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<User> Users => Set<User>();
     public DbSet<Page> Pages => Set<Page>();
     public DbSet<Section> Sections => Set<Section>();
+    public DbSet<SectionSnapshot> SectionSnapshots => Set<SectionSnapshot>();
     public DbSet<SectionTemplate> SectionTemplates => Set<SectionTemplate>();
     public DbSet<ThemeConfig> ThemeConfigs => Set<ThemeConfig>();
     public DbSet<Menu> Menus => Set<Menu>();
     public DbSet<MenuItem> MenuItems => Set<MenuItem>();
-    public DbSet<Asset> Assets => Set<Asset>();
     public DbSet<Media> Medias => Set<Media>();
     public DbSet<PageSnapshot> PageSnapshots => Set<PageSnapshot>();
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.AddInterceptors(new MediaUsageInterceptor());
+        base.OnConfiguring(optionsBuilder);
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

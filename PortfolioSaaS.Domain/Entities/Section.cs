@@ -1,6 +1,8 @@
+using PortfolioSaaS.Domain.Common;
+
 namespace PortfolioSaaS.Domain.Entities;
 
-public class Section
+public class Section: IMediaUsable
 {
     public Guid Id { get; set; }
     public Guid PageId { get; set; }
@@ -24,5 +26,10 @@ public class Section
     public string GetStoragePath()
     {
         return Page!.GetStoragePath();
+    }
+
+    public string GetUsageRoute()
+    {
+        return $"{PageId}#section-{Id}";
     }
 }

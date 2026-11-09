@@ -5,8 +5,14 @@ using PortfolioSaaS.Infrastructure.Services;
 
 namespace PortfolioSaaS.Infrastructure.Data;
 
-public class ApplicationDbContextFactory(TenantContext _tenantContext) : IDesignTimeDbContextFactory<ApplicationDbContext>
+public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
 {
+    // Constructor without parameters for design time
+    public ApplicationDbContextFactory() { }
+
+    // Constructor with TenantContext for runtime
+    public ApplicationDbContextFactory(TenantContext _tenantContext) { }
+
     public ApplicationDbContext CreateDbContext(string[] args)
     {
         var configuration = new ConfigurationBuilder()
@@ -20,6 +26,8 @@ public class ApplicationDbContextFactory(TenantContext _tenantContext) : IDesign
 
         optionsBuilder.UseNpgsql(connectionString);
 
-        return new ApplicationDbContext(optionsBuilder.Options, _tenantContext);
+        // For design time, create a dummy TenantContext
+        var tenantContext = new TenantContext();
+        return new ApplicationDbContext(optionsBuilder.Options, tenantContext);
     }
 }

@@ -76,8 +76,8 @@ public class BaseRepository<T>(ApplicationDbContext db) where T : class
         => ApplySpecification(specification).FirstOrDefaultAsync(cancellationToken);
     public Task<int> CountAsync(Specification<T> specification, CancellationToken cancellationToken = default)
         => ApplySpecification(specification).CountAsync(cancellationToken);
-public Task<List<T>> GetAll(Specification<T> specification, CancellationToken cancellationToken = default)
-        => ApplySpecification(specification).ToListAsync(cancellationToken);
+    public Task<List<T>> GetAll(Specification<T> specification, CancellationToken cancellationToken = default)
+            => ApplySpecification(specification).ToListAsync(cancellationToken);
     public async Task<PagedList<T>> PageBySpecAsync(PagedSpecification<T> specification, CancellationToken cancellationToken = default)
     {
         var totalCount = await CountAsync(specification, cancellationToken);

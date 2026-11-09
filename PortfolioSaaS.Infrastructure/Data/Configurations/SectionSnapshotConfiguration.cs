@@ -13,6 +13,10 @@ public class SectionSnapshotConfiguration : IEntityTypeConfiguration<SectionSnap
         builder.Property(s => s.ContentJson).HasColumnType("jsonb").IsRequired();
         builder.HasOne(s => s.SectionTemplate).WithMany().HasForeignKey(s => s.SectionTemplateId);
 
+        builder.HasOne(m => m.Media)
+            .WithMany()
+            .HasForeignKey(s => s.MediaId)
+            .OnDelete(DeleteBehavior.Restrict);
         // Self-referencing relationship for hierarchical sections
         builder.HasMany(s => s.SubSections)
             .WithOne()

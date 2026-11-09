@@ -9,10 +9,19 @@ public class MediaDto
     public string Url { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public int UsageCount { get; set; }
 }
 
 public class MediaFilterRequest
 {
     public string? SearchTerm { get; set; }
     public string? MediaType { get; set; }
+}
+
+public class MediaUsageDetail
+{
+    public string EntityType { get; set; } = string.Empty;
+    public Guid EntityId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string RoutePath { get; set; } = string.Empty;
 }

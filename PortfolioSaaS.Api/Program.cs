@@ -13,6 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<MediaService>();
+builder.Services.AddScoped<MediaUsageDetailsCalculator>();
 builder.Services.AddScoped<PageService>();
 builder.Services.AddScoped<SectionTemplateService>();
 builder.Services.AddScoped<ThemeConfigService>();

@@ -13,5 +13,6 @@ public class MediaConfiguration : IEntityTypeConfiguration<Media>
         // Indexes
         builder.HasIndex(m => m.MediaType);
         builder.HasIndex(m => m.UpdatedAt);
+        builder.HasIndex(m => m.UsageCount);
     }
 }

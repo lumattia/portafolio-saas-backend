@@ -62,4 +62,25 @@ public class MediaController(MediaService mediaService) : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpGet("{id:guid}/usage")]
+    public async Task<ActionResult<List<MediaUsageDetail>>> GetUsageDetails(Guid id)
+    {
+        var usageDetails = await _mediaService.GetMediaUsageDetailsAsync(id);
+        return Ok(usageDetails);
+    }
+
+    [HttpPost("{id:guid}/recalculate-usage")]
+    public async Task<ActionResult<int>> RecalculateUsageCount(Guid id)
+    {
+        try
+        {
+            var count = await _mediaService.RecalculateUsageCountAsync(id);
+            return Ok(count);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

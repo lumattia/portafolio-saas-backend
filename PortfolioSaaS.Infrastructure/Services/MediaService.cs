@@ -9,27 +9,20 @@ using PortfolioSaaS.Infrastructure.Specifications;
 
 namespace PortfolioSaaS.Infrastructure.Services;
 
-public class MediaService
+public class MediaService(
+    BaseRepository<Media> mediaRepository,
+    TenantContext tenantContext,
+    FileStorageService fileStorageService,
+    UnitOfWork unitOfWork,
+    IMapper mapper,
+    MediaUsageDetailsCalculator usageDetailsCalculator)
 {
-    private readonly BaseRepository<Media> _mediaRepository;
-    private readonly TenantContext _tenantContext;
-    private readonly FileStorageService _fileStorageService;
-    private readonly UnitOfWork _unitOfWork;
-    private readonly IMapper _mapper;
-
-    public MediaService(
-        BaseRepository<Media> mediaRepository,
-        TenantContext tenantContext,
-        FileStorageService fileStorageService,
-        UnitOfWork unitOfWork,
-        IMapper mapper)
-    {
-        _mediaRepository = mediaRepository;
-        _tenantContext = tenantContext;
-        _fileStorageService = fileStorageService;
-        _unitOfWork = unitOfWork;
-        _mapper = mapper;
-    }
+    private readonly BaseRepository<Media> _mediaRepository = mediaRepository;
+    private readonly TenantContext _tenantContext = tenantContext;
+    private readonly FileStorageService _fileStorageService = fileStorageService;
+    private readonly UnitOfWork _unitOfWork = unitOfWork;
+    private readonly IMapper _mapper = mapper;
+    private readonly MediaUsageDetailsCalculator _usageDetailsCalculator = usageDetailsCalculator;
 
     public async Task<PagedList<MediaDto>> GetMediaAsync(
         MediaFilterRequest request,
@@ -96,7 +89,7 @@ public class MediaService
         if (media is null)
             return null;
 
-        if (file is not null && file.Length > 0)
+        if (file?.Length > 0)
         {
             _unitOfWork.RegisterParticipant(_fileStorageService);
             await _unitOfWork.BeginTransactionAsync(cancellationToken);
@@ -141,14 +134,15 @@ public class MediaService
 
     public async Task DeleteMediaAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var media = await _mediaRepository.GetByIdAsync(id, cancellationToken);
+        var media = await _mediaRepository.GetByIdAsync(id, cancellationToken) ?? throw new InvalidOperationException("Media not found.");
 
-        if (media is null)
-            throw new InvalidOperationException("Media not found.");
+        // Check if media is in use
 
-        // Check if media is in use by sections (TODO: Add tracker for media usage)
-        // For now, throw error if media is in use
-        // Future: Add confirmation dialog with tracker showing usage count and locations
+        var usageCount = await _usageDetailsCalculator.GetUsageCountAsync(id, cancellationToken);
+        if (usageCount > 0)
+        {
+            throw new InvalidOperationException($"Media is in use by {usageCount} entity(ies). Cannot delete.");
+        }
 
         _unitOfWork.RegisterParticipant(_fileStorageService);
         await _unitOfWork.BeginTransactionAsync(cancellationToken);
@@ -168,12 +162,30 @@ public class MediaService
         }
     }
 
+    public Task<List<MediaUsageDetail>> GetMediaUsageDetailsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return _usageDetailsCalculator.GetUsageDetailsAsync(id, cancellationToken);
+    }
+
+    /// <summary>
+    /// Recalculates and corrects the UsageCount for a specific media.
+    /// Useful for manual correction if the interceptor failed or was bypassed.
+    /// </summary>
+    public async Task<int> RecalculateUsageCountAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var media = await _mediaRepository.GetByIdAsync(id, cancellationToken) ?? throw new InvalidOperationException("Media not found.");
+
+        var actualCount = await _usageDetailsCalculator.GetUsageCountAsync(id, cancellationToken);
+        media.UsageCount = actualCount;
+        await _mediaRepository.SaveAsync(media, cancellationToken);
+        return actualCount;
+    }
+
     // TODO: Future features to add:
     // - FileSelector component for non-image files
     // - MediaSelector that shows available selector types (ImageSelector, FileSelector, etc.)
     // - Different view layouts for file types
     // - Drag and drop functionality
     // - Advanced filtering options
-    // - Media usage tracker
     // - Bulk operations
 }

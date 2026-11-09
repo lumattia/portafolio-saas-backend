@@ -21,6 +21,9 @@ public class Media : ITenantEntity
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
+    // Usage tracking (computed, not persisted)
+    public int UsageCount { get; set; }
+
     public void SetMediaTypeFromMimeType()
     {
         MediaType = MimeType.StartsWith("image/") ? MediaType.Image : MediaType.File;

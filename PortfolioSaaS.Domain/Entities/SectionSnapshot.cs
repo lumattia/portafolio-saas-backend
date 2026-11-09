@@ -1,6 +1,8 @@
+using PortfolioSaaS.Domain.Common;
+
 namespace PortfolioSaaS.Domain.Entities;
 
-public class SectionSnapshot
+public class SectionSnapshot: IMediaUsable
 {
     public Guid Id { get; set; }
     public Guid SnapshotPageId { get; set; }
@@ -11,8 +13,15 @@ public class SectionSnapshot
     public bool IsEnabled { get; set; }
     // Hierarchical structure
     public Guid? ParentSectionId { get; set; }
+    public Guid? MediaId { get; set; }
     public Media? Media { get; set; }
     // Navigation
+    public PageSnapshot? SnapshotPage { get; set; }
     public SectionTemplate SectionTemplate { get; set; } = null!;
     public List<SectionSnapshot> SubSections { get; set; } = [];
+
+    public string GetUsageRoute()
+    {
+        return $"{SnapshotPageId}#snapshot-{Id}";
+    }
 }
