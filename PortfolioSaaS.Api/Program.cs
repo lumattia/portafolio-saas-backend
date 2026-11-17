@@ -17,7 +17,8 @@ builder.Services.AddScoped<MediaUsageDetailsCalculator>();
 builder.Services.AddScoped<PageService>();
 builder.Services.AddScoped<SectionTemplateService>();
 builder.Services.AddScoped<ThemeConfigService>();
-builder.Services.AddScoped<PublishingService>();
+builder.Services.AddScoped<PublishService>();
+builder.Services.AddScoped<SnapshotService>();
 builder.Services.AddScoped<MenuService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

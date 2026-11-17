@@ -1,15 +1,11 @@
-using System.Text.Json;
 using AutoMapper;
-using Microsoft.Extensions.Logging;
-using PortfolioSaaS.Application.DTOs.Renderer;
-using PortfolioSaaS.Application.DTOs.Snapshots;
 using PortfolioSaaS.Domain.Entities;
 using PortfolioSaaS.Infrastructure.Data;
 using PortfolioSaaS.Infrastructure.Specifications;
 
 namespace PortfolioSaaS.Infrastructure.Services;
 
-public class PublishingService(
+public class PublishService(
     BaseRepository<PageSnapshot> pageSnapshotRepository,
     BaseRepository<MenuSnapshot> menuSnapshotRepository,
     BaseRepository<ThemeConfigSnapshot> themeConfigSnapshotRepository,
@@ -20,7 +16,6 @@ public class PublishingService(
     BaseRepository<Tenant> tenantRepository,
     TenantContext tenantContext,
     IMapper mapper,
-    ILogger<PublishingService> logger,
     UnitOfWork unitOfWork)
 {
     private readonly BaseRepository<PageSnapshot> _pageSnapshotRepository = pageSnapshotRepository;
@@ -34,31 +29,6 @@ public class PublishingService(
     private readonly TenantContext _tenantContext = tenantContext;
     private readonly IMapper _mapper = mapper;
     private readonly UnitOfWork _unitOfWork = unitOfWork;
-    private readonly ILogger<PublishingService> _logger = logger;
-    
-    public async Task<PageRenderer?> GetPage(string slug, int? version)
-    {
-        var snapshotPage = await _pageSnapshotRepository.FirstOrDefaultBySpecAsync(
-            SnapshotsSpecs.GetPage(slug, _tenantContext.IsAuthenticated, version ?? _tenantContext.CurrentVersion?.Number));
-
-        if (snapshotPage == null) return null;
-
-        return _mapper.Map<PageRenderer>(snapshotPage);
-    }
-    public async Task<MenuRenderer> GetMenu(MenuType type, int? version)
-    {
-        var menus = await _menuSnapshotRepository.FirstOrDefaultBySpecAsync(
-            SnapshotsSpecs.GetMenu(type, version ?? _tenantContext.CurrentVersion?.Number));
-
-        return _mapper.Map<MenuRenderer>(menus);
-    }
-    public async Task<ThemeConfigSnapshotDto> GetThemeConfig(int? version)
-    {
-        var themeConfig = await _themeConfigSnapshotRepository.FirstOrDefaultBySpecAsync(
-            SnapshotsSpecs.GetThemeConfig(version ?? _tenantContext.CurrentVersion?.Number));
-
-        return _mapper.Map<ThemeConfigSnapshotDto>(themeConfig);
-    }
 
     public async Task<bool> PublishAsync(bool newVersion)
     {
@@ -95,11 +65,11 @@ public class PublishingService(
     }
     private async Task<bool> PublishPages(Guid versionId)
     {
-        var pages = await _pageRepository.GetAll(SnapshotsSpecs.PageToPublish());
+        var pages = await _pageRepository.GetAll(PublishSpecs.PagesToPublish());
         foreach (var page in pages)
         {
             var snapshot = await _pageSnapshotRepository.FirstOrDefaultBySpecAsync(
-                SnapshotsSpecs.GetPage(versionId, page.Id));
+                PublishSpecs.PageSnapshot(versionId, page.Id));
 
             snapshot ??= new PageSnapshot
             {
@@ -131,11 +101,11 @@ public class PublishingService(
     }
     private async Task<bool> PublishMenu(Guid versionId)
     {
-        var menus = await _menuRepository.GetAll(SnapshotsSpecs.MenuToPublish());
+        var menus = await _menuRepository.GetAll(PublishSpecs.MenusToPublish());
         foreach (var menu in menus)
         {
             var snapshot = await _menuSnapshotRepository.FirstOrDefaultBySpecAsync(
-                SnapshotsSpecs.GetMenu(versionId, menu.Id));
+                PublishSpecs.MenuSnapshot(versionId, menu.Id));
 
             snapshot ??= new MenuSnapshot
             {
@@ -155,11 +125,11 @@ public class PublishingService(
     }
         private async Task<bool> PublishThemeConfig(Guid versionId)
     {
-        var themeConfigs = await _themeConfigRepository.GetAll(SnapshotsSpecs.ThemeConfigToPublish());
+        var themeConfigs = await _themeConfigRepository.GetAll(PublishSpecs.ThemeConfigsToPublish());
         foreach (var themeConfig in themeConfigs)
         {
             var snapshot = await _themeConfigSnapshotRepository.FirstOrDefaultBySpecAsync(
-                SnapshotsSpecs.GetThemeConfig(versionId, themeConfig.Id));
+                PublishSpecs.ThemeConfigSnapshot(versionId, themeConfig.Id));
 
             snapshot ??= new ThemeConfigSnapshot
                 {

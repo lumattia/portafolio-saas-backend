@@ -7,14 +7,14 @@ namespace PortfolioSaaS.Api.Controllers.Admin;
 [ApiController]
 [Route("api/admin/[controller]")]
 [Authorize(Roles = "PlatformAdmin,TenantOwner")]
-public class SiteController(PublishingService publishingService) : ControllerBase
+public class SiteController(PublishService publishService) : ControllerBase
 {
-    private readonly PublishingService _publishingService = publishingService;
+    private readonly PublishService _publishService = publishService;
 
     [HttpPost("publish")]
     public async Task<ActionResult<bool>> Publish([FromQuery] bool newVersion = false)
     {
-        var result = await _publishingService.PublishAsync(newVersion);
+        var result = await _publishService.PublishAsync(newVersion);
         return Ok(result);
     }
 }
