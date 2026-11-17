@@ -36,7 +36,7 @@ public class PublishService(
         await _unitOfWork.BeginTransactionAsync();
         try
         {
-            var version = await _versionRepository.FirstOrDefaultBySpecAsync(PublishedVersionSpecs.GetLatestVersion());
+            var version = await _versionRepository.FirstOrDefaultBySpecAsync(VersionSpecs.GetLatestVersion());
             if (version == null || newVersion)
             {
                 var versionNumber = version?.Number + 1 ?? 1;

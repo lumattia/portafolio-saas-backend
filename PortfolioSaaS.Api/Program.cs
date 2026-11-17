@@ -19,6 +19,7 @@ builder.Services.AddScoped<SectionTemplateService>();
 builder.Services.AddScoped<ThemeConfigService>();
 builder.Services.AddScoped<PublishService>();
 builder.Services.AddScoped<SnapshotService>();
+builder.Services.AddScoped<VersionService>();
 builder.Services.AddScoped<MenuService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
