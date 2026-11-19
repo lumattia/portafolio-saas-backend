@@ -113,13 +113,4 @@ public class MediaUsageDetailsCalculator(
             return specImplementation;
         }
     }
-
-    public static void InvalidateCache()
-    {
-        lock (_cacheLock)
-        {
-            _mediaPropertiesCache.Clear();
-            _specificationCache.Clear();
-        }
-    }
 }

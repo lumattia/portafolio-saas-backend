@@ -13,26 +13,15 @@ public static class MediaSpecs
         spec.Query.Where(m => m.TenantId == tenantId);
         spec.Query.Search(x => x.FileName.ToLower(), $"%{request.SearchTerm?.ToLower()}%", request.SearchTerm != null);
         spec.Query.Where(x => x.MediaType.ToString() == request.MediaType,!string.IsNullOrWhiteSpace(request.MediaType));
-
-        // Order by usage if requested
-        switch (parameters.SortBy)
+        spec.OrderExpression = parameters.SortBy?.ToLowerInvariant() switch
         {
-            case "createdAt":
-                spec.OrderExpression = x=>x.CreatedAt;
-                break;
-            case "updatedAt":
-                spec.OrderExpression = x=>x.UpdatedAt;
-                break;
-            case "fileName":
-                spec.OrderExpression = x=>x.FileName;
-                break;
-            case "size":
-                spec.OrderExpression = x=>x.Size;
-                break;
-            case "usageCount":
-                spec.OrderExpression = x=>x.UsageCount;
-                break;
-        }
+            "createdat"  => x => x.CreatedAt,
+            "updatedat"  => x => x.UpdatedAt,
+            "filename"   => x => x.FileName,
+            "size"       => x => x.Size,
+            "usagecount" => x => x.UsageCount,
+            _            => null
+        };
         return spec;
     }
 

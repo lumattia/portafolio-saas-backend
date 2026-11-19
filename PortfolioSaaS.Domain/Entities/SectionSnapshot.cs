@@ -19,9 +19,4 @@ public class SectionSnapshot: IMediaUsable
     public PageSnapshot? SnapshotPage { get; set; }
     public SectionTemplate SectionTemplate { get; set; } = null!;
     public List<SectionSnapshot> SubSections { get; set; } = [];
-
-    public string GetUsageRoute()
-    {
-        return $"{SnapshotPageId}#snapshot-{Id}";
-    }
 }

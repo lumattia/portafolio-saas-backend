@@ -6,5 +6,4 @@ public interface IMediaUsable
 {
     public Guid? MediaId { get; set; }
     public Media? Media { get; set; }
-    string GetUsageRoute();
 }

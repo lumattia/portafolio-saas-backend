@@ -1,4 +1,5 @@
 using AutoMapper;
+using PortfolioSaaS.Application.DTOs.Pages;
 using PortfolioSaaS.Application.DTOs.PagedList;
 using PortfolioSaaS.Application.DTOs.Snapshots;
 using PortfolioSaaS.Application.DTOs.Versions;
@@ -27,14 +28,30 @@ public class VersionService(
         return new VersionListDto
         {
             CurrentVersionId = _tenantContext.CurrentVersion?.Id,
-            Versions = versions
+            Versions = [.. versions.OrderByDescending(v => int.TryParse(v.Name.Split('—')[0].Trim(), out var number) ? number : 0)]
         };
     }
 
-    public async Task<PagedList<SnapshotPageDto>> GetPagesAsync(Guid versionId, PagedParameters parameters)
+    public async Task<PagedList<SnapshotPageDto>> GetPagesAsync(Guid? versionId, PagedParameters parameters, PageFilters filters)
     {
-        var snapshots = await _pageSnapshotRepository.PageBySpecAsync(
-            SnapshotSpecs.PageSnapshotsByVersion(parameters, versionId));
+        int? versionNumber = null;
+        if (versionId.HasValue)
+        {
+            versionNumber = (await _versionRepository.FirstOrDefaultBySpecAsync(VersionSpecs.ById(versionId.Value)))?.Number;
+            if (versionNumber is null)
+                return PagedList<SnapshotPageDto>.EmptyList(parameters.PageSize);
+        }
+        // Necesario? O con nulo tambien funciona, debería funcionar....Y si no está seleccionada, debería devolver la última si quiere la actual que la seleccione.
+        else if (filters.Latest)
+        {
+            versionNumber = _tenantContext.CurrentVersion?.Number
+                ?? (await _versionRepository.FirstOrDefaultBySpecAsync(VersionSpecs.GetLatestVersion()))?.Number;
+            if (versionNumber is null)
+                return PagedList<SnapshotPageDto>.EmptyList(parameters.PageSize);
+        }
+
+        PagedList<PageSnapshot> snapshots = await _pageSnapshotRepository.PageBySpecAsync(
+            SnapshotSpecs.PageSnapshotsByVersion(parameters, versionNumber, filters));
         return _mapper.Map<PagedList<SnapshotPageDto>>(snapshots);
     }
 }

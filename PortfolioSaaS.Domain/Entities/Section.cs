@@ -21,15 +21,4 @@ public class Section: IMediaUsable
     public SectionTemplate SectionTemplate { get; set; } = null!;
     public Media? Media { get; set; }
     public List<Section> SubSections { get; set; } = [];
-
-    // Storage path methods
-    public string GetStoragePath()
-    {
-        return Page!.GetStoragePath();
-    }
-
-    public string GetUsageRoute()
-    {
-        return $"{PageId}#section-{Id}";
-    }
 }
