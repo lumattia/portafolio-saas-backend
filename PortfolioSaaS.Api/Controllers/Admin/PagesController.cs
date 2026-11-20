@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using PortfolioSaaS.Application.DTOs.Pages;
+using PortfolioSaaS.Application.DTOs.PagedList;
 using PortfolioSaaS.Application.DTOs.Renderer;
+using PortfolioSaaS.Domain.Common;
 using PortfolioSaaS.Infrastructure.Services;
 
 namespace PortfolioSaaS.Api.Controllers.Admin;
@@ -12,7 +14,11 @@ namespace PortfolioSaaS.Api.Controllers.Admin;
 [Authorize(Roles = "PlatformAdmin,TenantOwner")]
 public class PagesController(PageService _pageService) : ControllerBase
 {
-    private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
+    [HttpGet("table")]
+    public Task<PagedList<PageDto>> GetPages([FromQuery] PageFilters filters, [FromQuery] PagedParameters parameters)
+    {
+        return _pageService.GetPagesAsync(filters, parameters);
+    }
 
     [HttpGet("{*identifier}")]
     public async Task<ActionResult<PageRenderer?>> GetByIdentifier(string? identifier)

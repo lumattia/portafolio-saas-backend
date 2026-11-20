@@ -14,6 +14,6 @@ public class PageSnapshotConfiguration : IEntityTypeConfiguration<PageSnapshot>
         builder.Property(p => p.Slug).HasMaxLength(200).IsRequired();
         builder.Property(p => p.MetaDescription).HasMaxLength(500);
         builder.HasMany(p => p.Sections).WithOne(s => s.SnapshotPage).HasForeignKey(s => s.SnapshotPageId).OnDelete(DeleteBehavior.Cascade);
-        builder.HasIndex(p => new { p.TenantId, p.Slug, p.PublishedVersionId }).IsUnique();
+        builder.HasIndex(p => new { p.TenantId, p.Slug, p.PublishedVersionId }).IsUnique().HasFilter("\"IsDeleted\" = false");
     }
 }

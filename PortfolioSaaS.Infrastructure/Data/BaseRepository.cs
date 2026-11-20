@@ -45,7 +45,7 @@ public class BaseRepository<T>(ApplicationDbContext db) where T : class
     {
         var entity = await GetByIdOrThrowAsync(id, cancellationToken);
         await DeleteAsync(entity, cancellationToken);
-  }
+    }
 
     public async Task DeleteAsync(T entity, CancellationToken cancellationToken = default)
     {
@@ -80,17 +80,14 @@ public class BaseRepository<T>(ApplicationDbContext db) where T : class
             => ApplySpecification(specification).ToListAsync(cancellationToken);
     public async Task<PagedList<T>> PageBySpecAsync(PagedSpecification<T> specification, CancellationToken cancellationToken = default)
     {
-        var totalCount = await CountAsync(specification, cancellationToken);
-
-        var pageParams= specification.PagedParameters;
+        var pageParams = specification.PagedParameters;
+        var query = ApplySpecification(specification);
+        if (specification.QueryTransform is not null) query = specification.QueryTransform(query, _db.Set<T>());
+        if (specification.OrderExpression is not null) query = pageParams.IsDescending ? query.OrderByDescending(specification.OrderExpression) : query.OrderBy(specification.OrderExpression);
+        var totalCount = await query.CountAsync(cancellationToken);
         var page = pageParams.PageIndex;
-        if (totalCount == 0 || (page - 1) * pageParams.PageSize >= totalCount)
-        {
-            page = 1;
-        }
-        specification.ApplyPage();
-
-        var list = await ApplySpecification(specification).ToListAsync(cancellationToken);
+        if (totalCount == 0 || (page - 1) * pageParams.PageSize >= totalCount) page = 1;
+        var list = await query.Skip((page - 1) * pageParams.PageSize).Take(pageParams.PageSize).ToListAsync(cancellationToken);
         return new PagedList<T>
         {
             List = list,
@@ -107,6 +104,7 @@ public class BaseRepository<T>(ApplicationDbContext db) where T : class
     {
         return _db.Set<T>()
             .Select(selector)
+            .OrderBy(i => i.Name)
             .ToListAsync(cancellationToken);
     }
 

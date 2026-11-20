@@ -1,7 +1,9 @@
 using Ardalis.Specification;
 using AutoMapper;
 using PortfolioSaaS.Application.DTOs.Pages;
+using PortfolioSaaS.Application.DTOs.PagedList;
 using PortfolioSaaS.Application.DTOs.Renderer;
+using PortfolioSaaS.Domain.Common;
 using PortfolioSaaS.Domain.Entities;
 using PortfolioSaaS.Infrastructure.Data;
 using PortfolioSaaS.Infrastructure.Specifications;
@@ -20,6 +22,15 @@ public class PageService(
     private readonly BaseRepository<Media> _mediaRepository = mediaRepository;
     private readonly TenantContext _tenantContext = tenantContext;
     private readonly IMapper _mapper = mapper;
+
+    public async Task<PagedList<PageDto>> GetPagesAsync(PageFilters filters, PagedParameters parameters)
+    {
+        if (!_tenantContext.IsAuthenticated)
+            return new PagedList<PageDto> { PageIndex = 1, PageSize = parameters.PageSize, TotalPages = 0 };
+
+        var pages = await _pageRepository.PageBySpecAsync(PageSpecs.Page(parameters, filters));
+        return _mapper.Map<PagedList<PageDto>>(pages);
+    }
 
     public async Task<PageRenderer?> GetByIdentifier(string identifier)
     {

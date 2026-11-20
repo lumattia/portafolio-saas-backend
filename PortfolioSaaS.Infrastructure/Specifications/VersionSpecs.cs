@@ -12,10 +12,10 @@ public static class VersionSpecs
         return spec;
     }
 
-    public static Specification<PublishedVersion> All()
+    public static Specification<PublishedVersion> ById(Guid id)
     {
         var spec = new Specification<PublishedVersion>();
-        spec.Query.OrderByDescending(v => v.Number);
+        spec.Query.Where(v => v.Id == id);
         return spec;
     }
 }
