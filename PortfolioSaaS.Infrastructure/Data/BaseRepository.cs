@@ -98,14 +98,14 @@ public class BaseRepository<T>(ApplicationDbContext db) where T : class
     }
 
 
-    public Task<List<IdName>> GetAllAsIdNameAsync(
+    public async Task<List<IdName>> GetAllAsIdNameAsync(
         Expression<Func<T, IdName>> selector,
         CancellationToken cancellationToken = default)
     {
-        return _db.Set<T>()
+        var items = await _db.Set<T>()
             .Select(selector)
-            .OrderBy(i => i.Name)
             .ToListAsync(cancellationToken);
+        return [.. items.OrderBy(i => i.Name)];
     }
 
     private IQueryable<T> ApplySpecification(ISpecification<T> spec)
