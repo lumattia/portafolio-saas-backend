@@ -98,10 +98,7 @@ public static class DbSeeder
         {
             Id = Guid.NewGuid(),
             TenantId = demoTenant.Id,
-            Light = new Color
-            {
-                PrimaryColor = "#6366f1"
-            }
+            Light = new Color()
         };
         var menu = new Menu
         {
